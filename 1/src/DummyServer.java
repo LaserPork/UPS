@@ -16,6 +16,7 @@ public class DummyServer extends Thread{
 	private Socket socket;
 	private ServerMaster sm;
 	private User currentlyLogged = null;
+	private Game currentGame = null;
 	
 	PrintWriter out = null;
 	BufferedReader in = null;
@@ -79,7 +80,11 @@ public class DummyServer extends Thread{
 			case "logout": 	out.println(logout());
 							Thread.currentThread().interrupt();
 				break;
-			case "players": getPlayers(currentlyLogged.getGame());
+			case "players": getPlayers();
+				break;
+			case "draw": 	drawCard();
+				break;
+			case "enough": 	enough();
 				break;
 		}
 	}
@@ -123,7 +128,7 @@ public class DummyServer extends Thread{
 		if(currentlyLogged.getGame()!=null){
 			return "5~join~"+id+"~alreadyplaying~"+currentlyLogged.getGame().getId();
 		}
-		System.out.println(currentlyLogged.getOwnThread());
+		this.currentGame = game;
 		game.joinUser(currentlyLogged);
 		game.notifyAboutJoin(currentlyLogged);
 		return "4~join~"+id+"~success";
@@ -131,16 +136,46 @@ public class DummyServer extends Thread{
 	
 	public String logout(){
 		currentlyLogged.setLogged(false);
+		currentGame = null;
 		return "3~logout~success";
 	}
 	
-	public void getPlayers(Game game){
-		for (int i = 0; i < game.getPlayingCount(); i++) {
-			if(!game.getPlayingUsers()[i].getName().equals(currentlyLogged.getName())){
-				out.println("3~playerJoined~"+game.getPlayingUsers()[i].getName());
+	public void getPlayers(){
+		for (int i = 0; i < currentGame.getPlayingCount(); i++) {
+			if(!currentGame.getPlayingUsers()[i].getName().equals(currentlyLogged.getName())){
+				out.println("3~playerJoined~"+currentGame.getPlayingUsers()[i].getName());
 			}
 		}
 	}
 	
+	public void drawCard(){
+		if(currentlyLogged.hasEnough()){
+			out.println("3~draw~haveEnough");
+		}else if(currentlyLogged.isOver()){
+			out.println("3~draw~areOver");
+		}else if(currentGame.getDeckCount()>0){
+			out.println("4~draw~success~"+currentlyLogged.drawCard());
+			currentGame.notifyAboutDraw(currentlyLogged);
+		}
+		if(currentlyLogged.isOver()){
+			fold();
+		}
+		currentGame.tryToEndGame();
+	}
+	
+	public void enough(){
+		if(!currentlyLogged.isOver()){
+			currentlyLogged.enough();
+			out.println("3~enough~success");
+			currentGame.notifyAboutEnough(currentlyLogged);
+		}
+		currentGame.tryToEndGame();
+	}
+	
+	public void fold(){
+		if(currentlyLogged.isOver()){
+			currentGame.notifyAboutFold(currentlyLogged);
+		}
+	}
 	
 }

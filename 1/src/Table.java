@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.sun.javafx.geom.BaseBounds;
@@ -8,6 +9,8 @@ import com.sun.javafx.jmx.MXNodeAlgorithm;
 import com.sun.javafx.jmx.MXNodeAlgorithmContext;
 import com.sun.javafx.sg.prism.NGNode;
 
+import javafx.animation.RotateTransition;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -44,6 +47,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import javafx.util.Duration;
 
 public class Table {
 	
@@ -52,34 +56,16 @@ public class Table {
 	private Map<String, Callback<String, Object>> callbacks;
 	private Group hand = new Group();//(320, 540, 640, 180);
 	private ArrayList<Group> otherHands = new ArrayList<Group>();
+	private Map<Node,RotateTransition> animations = new HashMap<Node,RotateTransition>();
 	
 	public Table(StackPane platno, Connection connection,Map<String, Callback<String, Object>> callbacks){
 		this.platno = platno;
 		this.connection = connection;
 		this.callbacks = callbacks;
 		initCallbacks();
-		platno.setOnKeyPressed(new EventHandler<KeyEvent>() {
-
-			@Override
-			public void handle(KeyEvent event) {
-				if(event.getCode() == KeyCode.R){
-					resetGame();
-				}
-				if(event.getCode() == KeyCode.DIGIT1){
-					playerFolds("Player 1");
-				}
-				if(event.getCode() == KeyCode.DIGIT2){
-					playerFolds("Player 2");
-				}
-				if(event.getCode() == KeyCode.DIGIT3){
-					playerFolds("Player 3");
-				}
-				if(event.getCode() == KeyCode.DIGIT4){
-					playerFolds("Player 4");
-				}
-			}
-		});
+		
 		connection.askPlayers();
+		connection.drawCard();
 	}
 	
 	public void initCallbacks(){
@@ -92,6 +78,138 @@ public class Table {
 								String[] ar = mess.split("~");
 								String result = ar[2];
 								joinPlayer(result);
+							}
+						}
+				);
+				
+				return null;
+			}
+		});
+		
+		callbacks.put("draw", new Callback<String, Object>() {
+			public Object call(String mess) {
+				String[] ar = mess.split("~");
+				String result = ar[2];
+				switch (result) {
+					case "success":
+						Platform.runLater(
+							new Runnable() {
+								@Override
+								public void run() {
+									drawCard(Integer.parseInt(ar[3]));
+								}
+							}
+					);
+					break;
+					case "haveEnough":
+					break;
+					case "areOver":
+					break;
+				}
+				
+				
+				return null;
+			}
+		});
+		
+		callbacks.put("playerDraw", new Callback<String, Object>() {
+			public Object call(String mess) {
+				Platform.runLater(
+						new Runnable() {
+							@Override
+							public void run() {
+								String[] ar = mess.split("~");
+								String nick = ar[2];
+								int count = Integer.parseInt(ar[3]);
+								playerDrawsCard(nick,count);
+							}
+						}
+				);
+				
+				return null;
+			}
+		});
+		
+		callbacks.put("enough", new Callback<String, Object>() {
+			public Object call(String mess) {
+				Platform.runLater(
+						new Runnable() {
+							@Override
+							public void run() {
+								enough();
+							}
+						}
+				);
+				return null;
+			}
+		});
+		
+		callbacks.put("playerEnough", new Callback<String, Object>() {
+			public Object call(String mess) {
+				Platform.runLater(
+						new Runnable() {
+							@Override
+							public void run() {
+								String[] ar = mess.split("~");
+								String nick = ar[2];
+								playerEnough(nick);
+							}
+						}
+				);
+				
+				return null;
+			}
+		});
+		
+		callbacks.put("fold", new Callback<String, Object>() {
+			public Object call(String mess) {
+				Platform.runLater(
+						new Runnable() {
+							@Override
+							public void run() {
+								String[] ar = mess.split("~");
+								String nick = ar[2];
+								if(nick.equals(connection.nick)){
+									fold();
+								}else{
+									playerFolds(nick);									
+								}
+							}
+						}
+				);
+				
+				return null;
+			}
+		});
+		
+		callbacks.put("end", new Callback<String, Object>() {
+			public Object call(String mess) {
+				Platform.runLater(
+						new Runnable() {
+							@Override
+							public void run() {
+								String[] ar = mess.split("~");
+								String nick = ar[2];
+								if(nick.equals(connection.nick)){
+									win();
+								}else{
+									playerWon(nick);									
+								}
+							}
+						}
+				);
+				
+				return null;
+			}
+		});
+		
+		callbacks.put("reset", new Callback<String, Object>() {
+			public Object call(String mess) {
+				Platform.runLater(
+						new Runnable() {
+							@Override
+							public void run() {
+								resetGame();
 							}
 						}
 				);
@@ -128,33 +246,18 @@ public class Table {
 		board.setFill(gradient);
 		group.getChildren().add(board);
 		
-		Group deck = createCardBack();
+		Group deck = createDrawDeck();
 		
-		deck.setOnMouseClicked(new EventHandler<MouseEvent>() {
-			@Override
-			public void handle(MouseEvent event) {
-				drawCard((int)(Math.random()*32));
-			}
-		});
-		deck.setOnMouseEntered(new EventHandler<MouseEvent>() {
-			@Override
-			public void handle(MouseEvent event) {
-				platno.getScene().setCursor(Cursor.HAND);
-			}
-		});deck.setOnMouseExited(new EventHandler<MouseEvent>() {
-			@Override
-			public void handle(MouseEvent event) {
-				platno.getScene().setCursor(Cursor.DEFAULT);
-			}
-		});
-		deck.setTranslateX(590);
-		deck.setTranslateY(285);
+		Group enough = createEnough();
 		
 		group.getChildren().add(deck);
+		group.getChildren().add(enough);
+		
 		
 		hand.setTranslateX(320);
 		hand.setTranslateY(540);
 		hand.setClip(new Rectangle(0, 0, 640, 180));
+		createRotationAnimation(hand);
 		group.getChildren().add(hand);
 		
 		Group h1 = new Group();
@@ -179,6 +282,60 @@ public class Table {
 		
 	}
 	
+	public Group createDrawDeck(){
+		Group deck = createCardBack();
+		
+		deck.setOnMouseClicked(new EventHandler<MouseEvent>() {
+			@Override
+			public void handle(MouseEvent event) {
+				connection.drawCard();
+			}
+		});
+		deck.setOnMouseEntered(new EventHandler<MouseEvent>() {
+			@Override
+			public void handle(MouseEvent event) {
+				platno.getScene().setCursor(Cursor.HAND);
+			}
+		});deck.setOnMouseExited(new EventHandler<MouseEvent>() {
+			@Override
+			public void handle(MouseEvent event) {
+				platno.getScene().setCursor(Cursor.DEFAULT);
+			}
+		});
+		deck.setTranslateX(530);
+		deck.setTranslateY(285);
+		
+		return deck;
+	}
+	
+	public Group createEnough(){
+		Group deck = createCardBack();
+		
+		deck.setOnMouseClicked(new EventHandler<MouseEvent>() {
+			@Override
+			public void handle(MouseEvent event) {
+				connection.announceEnough();
+			}
+		});
+		deck.setOnMouseEntered(new EventHandler<MouseEvent>() {
+			@Override
+			public void handle(MouseEvent event) {
+				platno.getScene().setCursor(Cursor.HAND);
+			}
+		});deck.setOnMouseExited(new EventHandler<MouseEvent>() {
+			@Override
+			public void handle(MouseEvent event) {
+				platno.getScene().setCursor(Cursor.DEFAULT);
+			}
+		});
+		deck.setTranslateX(650);
+		deck.setTranslateY(285);
+		
+		return deck;
+	}
+	
+	
+	
 	public void drawCard(int cardId){
 		Group card = new Group();
 		Rectangle c = new Rectangle(0, 0, 100, 150);
@@ -194,6 +351,8 @@ public class Table {
 		card.getChildren().addAll(c,t);
 		hand.getChildren().add(card);
 		repositionHand(hand);
+		stopRotationAnimation(hand);
+		createRotationAnimation(hand);
 		
 	}
 	
@@ -229,6 +388,7 @@ public class Table {
 	//	c2.setTranslateY(20);
 		Group c3 = createCardBack();
 		hand.getChildren().addAll(c1,c2,c3);
+		createRotationAnimation(hand);
 		Text cards = new Text("0");
 		cards.setTranslateX(30);
 		cards.setTranslateY(100);
@@ -239,9 +399,8 @@ public class Table {
 		Text name = new Text(nick);
 		
 		name.setTranslateY(-40);
-		name.setFont(new Font(20));
+		name.setFont(new Font(30));
 		name.setFill(Color.GOLD);
-		name.setStroke(Color.BLACK);
 		name.setTranslateX(50-name.getLayoutBounds().getWidth()/2);
 		hand.getChildren().add(name);
 		
@@ -314,14 +473,10 @@ public class Table {
 		return deck;
 	}
 	
-	public void playerDrawsCard(String nick){
+	public void playerDrawsCard(String nick, int cards){
 		Group hand = getPlayer(nick);
-		String name = ((Text)hand.getChildren().get(4)).getText();
-		if(name.equals(nick)){
-			int value = Integer.parseInt(((Text)hand.getChildren().get(3)).getText());
-			value++;
-			((Text)hand.getChildren().get(3)).setText(String.valueOf(value));
-		}
+		((Text)hand.getChildren().get(3)).setText(String.valueOf(cards));
+		
 	}
 	
 	public Group getPlayer(String nick){
@@ -339,18 +494,74 @@ public class Table {
 	public void playerFolds(String nick){
 		Group hand = getPlayer(nick);
 		hand.setOpacity(0.2);
+		stopRotationAnimation(hand);
 	}
 	
 	public void fold(){
 		hand.setOpacity(0.2);
+		stopRotationAnimation(hand);
 	}
 	
 	public void resetGame(){
+		startAllRotationAnimations();
 		for (int i = 0; i < otherHands.size(); i++) {
 			otherHands.get(i).getChildren().get(0).setOpacity(1);
 			((Text)((Group)otherHands.get(i).getChildren().get(0)).getChildren().get(3)).setText("0");
 			this.hand.getChildren().clear();
 			this.hand.setOpacity(1);
+			connection.drawCard();
 		}
+	}
+	
+	public void createRotationAnimation(Group hand){
+		for (int i = 0; i < hand.getChildren().size(); i++) {
+			if(animations.get(hand.getChildren().get(i))==null){
+				RotateTransition rt = new RotateTransition(Duration.millis(100), hand.getChildren().get(i));
+				rt.setFromAngle(hand.getChildren().get(i).getRotate()-5);
+			    rt.setByAngle(hand.getChildren().get(i).getRotate()+10);
+			    rt.setCycleCount(Timeline.INDEFINITE);
+			    rt.setAutoReverse(true);
+			    rt.play();
+			    animations.put(hand.getChildren().get(i), rt);
+			}else{
+				animations.get(hand.getChildren().get(i)).playFromStart();
+			}
+		}
+	}
+	
+	public void stopRotationAnimation(Group hand){
+		if(!animations.isEmpty()){
+			for (int i = 0; i < hand.getChildren().size(); i++) {
+				RotateTransition rt = animations.get(hand.getChildren().get(i));
+				if(rt!=null){
+					rt.stop();
+					rt.playFromStart();
+					rt.stop();
+				}
+			}
+		}
+	}
+	
+	public void startAllRotationAnimations(){
+		for (Map.Entry<Node, RotateTransition> entry : animations.entrySet()) {
+			entry.getValue().play();
+		}
+	}
+	
+	public void enough(){
+		stopRotationAnimation(hand);
+	}
+	
+	public void playerEnough(String nick){
+		Group hand = getPlayer(nick);
+		stopRotationAnimation(hand);
+	}
+	
+	public void win(){
+		
+	}
+	
+	public void playerWon(String nick){
+		
 	}
 }

@@ -113,4 +113,8 @@ class Connection extends Thread{
 	public void askPlayers(){
 		out.println("3~players~count");
 	}
+	
+	public void announceEnough(){
+		out.println("2~enough");
+	}
 }
