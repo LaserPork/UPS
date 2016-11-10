@@ -161,6 +161,7 @@ public class Game {
 		}
 		resetDeck();
 		for (int i = 0; i < playingCount; i++) {
+			playing[i].reset();
 			playing[i].getOwnThread().out.println("2~reset");
 		}
 	}

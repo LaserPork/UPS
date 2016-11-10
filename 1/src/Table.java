@@ -2,50 +2,33 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.sun.javafx.geom.BaseBounds;
-import com.sun.javafx.geom.RoundRectangle2D;
-import com.sun.javafx.geom.transform.BaseTransform;
-import com.sun.javafx.jmx.MXNodeAlgorithm;
-import com.sun.javafx.jmx.MXNodeAlgorithmContext;
-import com.sun.javafx.sg.prism.NGNode;
 
 import javafx.animation.RotateTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.ObservableList;
-import javafx.collections.ObservableSet;
-import javafx.css.PseudoClass;
+
 import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
-import javafx.scene.effect.BlendMode;
-import javafx.scene.effect.ColorAdjust;
-import javafx.scene.effect.ColorInput;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
+
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.Region;
+
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.ImagePattern;
-import javafx.scene.paint.Paint;
+
 import javafx.scene.paint.RadialGradient;
 import javafx.scene.paint.Stop;
-import javafx.scene.shape.Circle;
-import javafx.scene.shape.Line;
+
 import javafx.scene.shape.Rectangle;
-import javafx.scene.shape.Shape;
+
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
-import javafx.scene.text.TextAlignment;
-import javafx.stage.Stage;
+
 import javafx.util.Callback;
 import javafx.util.Duration;
 
@@ -357,6 +340,7 @@ public class Table {
 	}
 	
 	public void joinPlayer(String nick){
+		System.out.println("JOINED");
 		ArrayList<Group> empty = new ArrayList<Group>();
 		for (int i = 0; i < otherHands.size(); i++) {
 			if(otherHands.get(i).getChildren().isEmpty()){
@@ -505,12 +489,14 @@ public class Table {
 	public void resetGame(){
 		startAllRotationAnimations();
 		for (int i = 0; i < otherHands.size(); i++) {
-			otherHands.get(i).getChildren().get(0).setOpacity(1);
-			((Text)((Group)otherHands.get(i).getChildren().get(0)).getChildren().get(3)).setText("0");
-			this.hand.getChildren().clear();
-			this.hand.setOpacity(1);
-			connection.drawCard();
+			if(!otherHands.get(i).getChildren().isEmpty()){
+				otherHands.get(i).getChildren().get(0).setOpacity(1);
+				((Text)((Group)otherHands.get(i).getChildren().get(0)).getChildren().get(3)).setText("0");
+			}
 		}
+		this.hand.getChildren().clear();
+		this.hand.setOpacity(1);
+		connection.drawCard();
 	}
 	
 	public void createRotationAnimation(Group hand){
@@ -535,8 +521,7 @@ public class Table {
 				RotateTransition rt = animations.get(hand.getChildren().get(i));
 				if(rt!=null){
 					rt.stop();
-					rt.playFromStart();
-					rt.stop();
+					hand.getChildren().get(i).setRotate(0);
 				}
 			}
 		}

@@ -17,6 +17,11 @@ public class User {
 		this.ownThread = ownThread;
 	}
 	
+	public void reset(){
+		dropHand();
+		hasEnough = false;
+	}
+	
 	public int getHandCount(){
 		return handCount;
 	}
@@ -37,6 +42,7 @@ public class User {
 		for (int i = 0; i < 32; i++) {
 			hand[i] = -1;
 		}
+		handCount = 0;
 	}
 	
 	public int drawCard(){
