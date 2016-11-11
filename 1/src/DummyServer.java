@@ -168,6 +168,8 @@ public class DummyServer extends Thread{
 			currentlyLogged.enough();
 			out.println("3~enough~success");
 			currentGame.notifyAboutEnough(currentlyLogged);
+		}else{
+			out.println("3~enough~areOver");
 		}
 		currentGame.tryToEndGame();
 	}

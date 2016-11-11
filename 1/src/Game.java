@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Game {
@@ -137,22 +138,36 @@ public class Game {
 	}
 	
 	public void endGame(){
-		User winner = null;
+		User[] winners = new User[5];
+		int winnersCount = 0;
 		for (int i = 0; i < playingCount; i++) {
 			if(playing[i].hasEnough() && !playing[i].isOver()){
-				if(winner == null){
-					winner = playing[i];
-				}else if(winner.getHandValue()<playing[i].getHandValue()){
-					winner = playing[i];
+				if(winnersCount==0){
+					winners[winnersCount] = playing[i];
+					winnersCount++;
+				}else{
+					User winner = winners[0];
+					if(winner.getHandValue()<playing[i].getHandValue()){
+						winnersCount = 1;
+						winners[0] = playing[i];	
+					}else if(winner.getHandValue()==playing[i].getHandValue()){
+						winners[winnersCount] = playing[i];
+						winnersCount++;		
+					}
+					
 				}
 			}
 		}
-		notifyAboutWin(winner);
+		String result = (2+winnersCount)+"~end";
+		for (int i = 0; i < winnersCount; i++) {
+			result += "~"+winners[i].getName();
+		}
+		notifyAboutWin(result);
 	}
 	
-	public void notifyAboutWin(User user){
+	public void notifyAboutWin(String winners){
 		for (int i = 0; i < playingCount; i++) {
-			playing[i].getOwnThread().out.println("3~end~"+user.getName());
+			playing[i].getOwnThread().out.println(winners);
 		}
 		try {
 			Thread.sleep(4000);

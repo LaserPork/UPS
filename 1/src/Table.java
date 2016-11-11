@@ -2,8 +2,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-
+import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
 import javafx.animation.RotateTransition;
+import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -40,6 +42,7 @@ public class Table {
 	private Group hand = new Group();//(320, 540, 640, 180);
 	private ArrayList<Group> otherHands = new ArrayList<Group>();
 	private Map<Node,RotateTransition> animations = new HashMap<Node,RotateTransition>();
+	private Group info = new Group();
 	
 	public Table(StackPane platno, Connection connection,Map<String, Callback<String, Object>> callbacks){
 		this.platno = platno;
@@ -119,7 +122,11 @@ public class Table {
 						new Runnable() {
 							@Override
 							public void run() {
-								enough();
+								String[] ar = mess.split("~");
+								String mess = ar[2];
+								if(mess.equals("success")){
+									enough();
+								}
 							}
 						}
 				);
@@ -172,12 +179,26 @@ public class Table {
 							@Override
 							public void run() {
 								String[] ar = mess.split("~");
-								String nick = ar[2];
-								if(nick.equals(connection.nick)){
-									win();
-								}else{
-									playerWon(nick);									
+								if(ar.length == 2){
+									lose();
+								}else if(ar.length == 3){
+									if(ar[2].equals(connection.nick)){
+										win();
+									}else{
+										playerWon(ar[2]);
+										lose();
+									}
+								}else if(ar.length > 3){
+									lose();
+									for (int i = 2; i < ar.length; i++) {
+										if(ar[i].equals(connection.nick)){
+											draw();
+										}else{
+											playerDraw(ar[i]);									
+										}
+									}
 								}
+								
 							}
 						}
 				);
@@ -233,9 +254,10 @@ public class Table {
 		
 		Group enough = createEnough();
 		
+		
 		group.getChildren().add(deck);
 		group.getChildren().add(enough);
-		
+		group.getChildren().add(info);
 		
 		hand.setTranslateX(320);
 		hand.setTranslateY(540);
@@ -290,7 +312,7 @@ public class Table {
 		
 		return deck;
 	}
-	
+
 	public Group createEnough(){
 		Group deck = createCardBack();
 		
@@ -340,7 +362,6 @@ public class Table {
 	}
 	
 	public void joinPlayer(String nick){
-		System.out.println("JOINED");
 		ArrayList<Group> empty = new ArrayList<Group>();
 		for (int i = 0; i < otherHands.size(); i++) {
 			if(otherHands.get(i).getChildren().isEmpty()){
@@ -487,6 +508,7 @@ public class Table {
 	}
 	
 	public void resetGame(){
+		info.getChildren().clear();
 		startAllRotationAnimations();
 		for (int i = 0; i < otherHands.size(); i++) {
 			if(!otherHands.get(i).getChildren().isEmpty()){
@@ -504,7 +526,7 @@ public class Table {
 			if(animations.get(hand.getChildren().get(i))==null){
 				RotateTransition rt = new RotateTransition(Duration.millis(100), hand.getChildren().get(i));
 				rt.setFromAngle(hand.getChildren().get(i).getRotate()-5);
-			    rt.setByAngle(hand.getChildren().get(i).getRotate()+10);
+			    rt.setByAngle(10);
 			    rt.setCycleCount(Timeline.INDEFINITE);
 			    rt.setAutoReverse(true);
 			    rt.play();
@@ -543,10 +565,71 @@ public class Table {
 	}
 	
 	public void win(){
-		
+		info.getChildren().clear();
+		Text t = new Text("Win");
+		t.setFont(new Font(200));
+		t.setFill(Color.GOLD);
+		t.setStroke(Color.YELLOW);
+		t.setStrokeWidth(10);
+		t.setTranslateX(640-t.getLayoutBounds().getWidth()/2);
+		t.setTranslateY(360+100/2);
+		info.getChildren().add(t);
+	//	label.setVisible(false);
+		FadeTransition fd = new FadeTransition(Duration.millis(200), t);
+	    fd.setFromValue(0);
+	    fd.setToValue(1);
+	    fd.setCycleCount(Timeline.INDEFINITE);
+	    fd.setAutoReverse(true);
+	/*    fd.setInterpolator(new Interpolator() {
+			
+			@Override
+			protected double curve(double t) {
+				// TODO Auto-generated method stub
+				return t<0.5?0:1;
+			}
+		});*/
+	    fd.play();
 	}
 	
 	public void playerWon(String nick){
 		
+	}
+	
+	public void draw(){
+		info.getChildren().clear();
+		Text t = new Text("Draw");
+		t.setFont(new Font(100));
+		t.setFill(Color.GREEN);
+		t.setStroke(Color.BLACK);
+		t.setTranslateX(640-t.getLayoutBounds().getWidth()/2);
+		t.setTranslateY(360+100/2);
+		info.getChildren().add(t);
+	//	label.setVisible(false);
+		ScaleTransition st = new ScaleTransition(Duration.millis(5000), t);
+	    st.setByX(1.05f);
+	    
+	    st.setByY(1.05f);
+	    st.play();
+	}
+	
+	public void playerDraw(String nick){
+		
+	}
+	
+	public void lose(){
+		info.getChildren().clear();
+		Text t = new Text("Lost");
+		t.setFont(new Font(100));
+		t.setFill(Color.RED);
+		t.setStroke(Color.BLACK);
+		t.setTranslateX(640-t.getLayoutBounds().getWidth()/2);
+		t.setTranslateY(360+100/2);
+		info.getChildren().add(t);
+	//	label.setVisible(false);
+		ScaleTransition st = new ScaleTransition(Duration.millis(5000), t);
+	    st.setByX(1.05f);
+	    
+	    st.setByY(1.05f);
+	    st.play();
 	}
 }
