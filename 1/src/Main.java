@@ -67,7 +67,7 @@ public class Main extends Application{
 
 	@Override
 	public void start(Stage stage) throws Exception {
-		ServerSocket ss = null;
+	/*	ServerSocket ss = null;
 		try{
 			ss = new ServerSocket(1234);
 		}catch(Exception e){
@@ -79,6 +79,7 @@ public class Main extends Application{
 			sm.setDaemon(true);
 			sm.start();
 		}
+		*/
 		this.stage = stage;
 		setLoginStage(stage);
 		initCallbacks();
@@ -410,7 +411,9 @@ public class Main extends Application{
 		join.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent event) {
-				connection.join(tables.getSelectionModel().getSelectedItem().getId());
+				if(tables.getSelectionModel().getSelectedItem()!=null){
+					connection.join(tables.getSelectionModel().getSelectedItem().getId());
+				}
 			}
 		});
 		
