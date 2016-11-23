@@ -25,4 +25,6 @@ void addUser(struct dynUserArray *array, struct user *user);
 
 void addClient(struct dynClientArray *array, struct client *client);
 
+void freeArray(char** array, int size);
+
 #endif

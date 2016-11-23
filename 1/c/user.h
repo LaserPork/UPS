@@ -4,8 +4,8 @@
 #include <pthread.h>
 
 struct user{
-    char name[20];
-    char password[20];
+    char *name;
+    char *password;
     struct game *game;
     int hand[32];
     int handPos;
@@ -15,7 +15,7 @@ struct user{
     int hasEnough;
 };
 
-struct user* createUser(char name[20], char password[20], pthread_t* ownThread);
+struct user* createUser(char *name, char *password, pthread_t* ownThread);
 
 void resetUser(struct user* User);
 

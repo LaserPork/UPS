@@ -1,5 +1,6 @@
 #include "dynArray.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "user.h"
 #include "game.h"
@@ -47,5 +48,12 @@ void addClient(struct dynClientArray* array, struct client* client){
     }
     array->array[array->arrayPos] = client;
 
+}
+
+void freeArray(char** array, int size){
+    int i;
+    for (i = 0; i < size; ++i) {
+        free(array[i]);
+    }
 }
 

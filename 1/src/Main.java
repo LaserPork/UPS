@@ -319,13 +319,15 @@ public class Main extends Application{
 		btloggin.setOnAction(new EventHandler<ActionEvent>(){
 			@Override
 			public void handle(ActionEvent arg0) {
-				String server = ((TextField)((HBox)vb.getChildren().get(0)).getChildren().get(1)).getText();
-				int port = ((Spinner<Integer>)((HBox)vb.getChildren().get(0)).getChildren().get(2)).getValue();
-				String nick = ((TextField)((HBox)vb.getChildren().get(1)).getChildren().get(1)).getText();
-				String pass = ((PasswordField)((HBox)vb.getChildren().get(2)).getChildren().get(1)).getText();
-				connection = new Connection(callbacks, server, port, nick, pass);
-				connection.setDaemon(true);
-				connection.start();
+				
+					String server = ((TextField)((HBox)vb.getChildren().get(0)).getChildren().get(1)).getText();
+					int port = ((Spinner<Integer>)((HBox)vb.getChildren().get(0)).getChildren().get(2)).getValue();
+					String nick = ((TextField)((HBox)vb.getChildren().get(1)).getChildren().get(1)).getText();
+					String pass = ((PasswordField)((HBox)vb.getChildren().get(2)).getChildren().get(1)).getText();
+					connection = new Connection(callbacks, server, port, nick, pass);
+					connection.setDaemon(true);
+					connection.start();
+				
 			}
 		});
 		btexit.setOnAction(new EventHandler<ActionEvent>(){

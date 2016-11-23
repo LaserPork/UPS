@@ -30,9 +30,10 @@ struct client* createClient(struct server* Server, int socket){
     Client->Server = Server;
     Client->socket = socket;
     printf("creaaating\n");
-    pthread_create(&Client->tid, NULL, test, Client);
+    pthread_create(&Client->tid, NULL, runClient, Client);
     printf("detaching\n");
     pthread_detach(Client->tid);
+
     return Client;
 }
 
@@ -47,18 +48,17 @@ void* runClient(void * voidClient){
             perror("Chyba pri cteni\n");
             break;
         }else {
-            printf("Server gets: %s \n", buf);
+            printf("Server gets: %s", buf);
 
             /*          */
-            if(recieve(Client, buf)){
-                break;
-            };
+           recieve(Client, buf);
+
             /*          */
 
 
         }
     }
-
+    printf("Klient %p ukoncil prubeh\n", (void *)&Client->tid);
     close(c_sockfd);
 
     return NULL;
@@ -68,23 +68,28 @@ int recieve(struct client* Client, char* mess){
     int i = 0;
     int size = 0;
     char* type;
-    char* p = strtok(mess, "~");
+    char* p;
     char* array[10];
     char buf_out[BUFFSIZE];
     int c_sockfd = Client->socket;
+    for (i = 0; i < 10; ++i) {
+        array[i] = malloc(sizeof(char*));
+    }
 
+    p = strtok(mess, "~");
+    i=0;
     while (p != NULL && i < 10){
         size++;
-        array[i++] = p;
+        strcpy(array[i++], p);
         p = strtok(NULL, "~");
     }
 
     if(size != atoi(array[0])){
-        printf("Corrupted packet: %s \n", mess);
+        printf("Corrupted packet: %s", mess);
     }
 
-    type = array[1];
 
+    type = array[1];
     if(strcmp(type,"login") == 0){
         strcpy(buf_out, login(Client,array[2],array[3]));
         /*    case "tables": 	out.println(getTables());
@@ -104,26 +109,32 @@ int recieve(struct client* Client, char* mess){
             break;
             */
 
-        printf("Server sends: %s\n", buf_out);
+        printf("Server sends: %s", buf_out);
         if (send(c_sockfd, buf_out, strlen(buf_out), 0) == -1) {
             perror("Chyba pri zapisu");
+         /* freeArray(array, 10); */
             return 1;
         }
 
     }
-
+    /*freeArray(array, 10);*/
     return 0;
 }
 
 char* login(struct client* Client, char* name, char* password){
     int i;
     struct user* newUser;
+    printf("%s, %s \n", name, password);
     for (i = 0; i < Client->Server->users->arrayPos; ++i) {
-        if(strcmp(Client->Server->users->array[i]->name, name)){
+        printf("try to print\n");
+        printf("%s\n", Client->Server->users->array[i]->name);
+        printf("done\n");
+        if(strcmp(Client->Server->users->array[i]->name, name) == 0){
+
             if(Client->Server->users->array[i]->logged){
                 return "3~login~alreadylogged\n";
             }
-            if(strcmp(Client->Server->users->array[i]->password, password)){
+            if(strcmp(Client->Server->users->array[i]->password, password) == 0){
                 Client->Server->users->array[i]->logged = 1;
                 Client->currentlyLogged = Client->Server->users->array[i];
                 return "3~login~success\n";
@@ -135,5 +146,8 @@ char* login(struct client* Client, char* name, char* password){
     newUser->logged = 1;
     addUser(Client->Server->users, newUser);
     Client->currentlyLogged = newUser;
+    printf("New user:");
+    printf(Client->Server->users->array[Client->Server->users->arrayPos]->name);
+    printf("\n");
     return "3~login~registered\n";
 }

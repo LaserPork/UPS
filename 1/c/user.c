@@ -5,9 +5,11 @@
 
 
 
-struct user* createUser(char name[20], char password[20], pthread_t* ownThread){
+struct user* createUser(char *name, char *password, pthread_t* ownThread){
     struct user* User;
     User = malloc(sizeof(struct user));
+    User->name = malloc(sizeof(char) * 20);
+    User->password = malloc(sizeof(char) * 20);
     strcpy(User->name, name);
     strcpy(User->password, password);
     User->ownThread = ownThread;
