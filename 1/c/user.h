@@ -2,6 +2,7 @@
 #define INC_1_USER_H
 
 #include <pthread.h>
+#include "client.h"
 
 struct user{
     char *name;
@@ -9,13 +10,13 @@ struct user{
     struct game *game;
     int hand[32];
     int handPos;
-    pthread_t *ownThread;
+    struct client* Client;
 
     int logged;
     int hasEnough;
 };
 
-struct user* createUser(char *name, char *password, pthread_t* ownThread);
+struct user* createUser(char *name, char *password, struct client* Client);
 
 void resetUser(struct user* User);
 

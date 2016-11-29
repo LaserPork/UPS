@@ -4,10 +4,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
-#include <w32api/_timeval.h>
 #include "server.h"
 #include "user.h"
 #include "game.h"
@@ -35,4 +33,15 @@ char* getTablePlaying(struct client* Client, int id);
 char* join(struct client* Client, int id);
 
 char* logout(struct client* Client);
+
+int sendMessage(struct client* Client, char* buf_out);
+
+void getPlayers(struct client* Client);
+
+void drawCard(struct client* Client);
+
+void enough(struct client* Client);
+
+void fold(struct client* Client);
+
 #endif

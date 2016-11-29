@@ -1,5 +1,6 @@
 #include "user.h"
 #include "game.h"
+#include "client.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -89,24 +90,57 @@ void kickGameUser(struct game* Game, struct user* User){
 
 void notifyGameAboutJoin(struct game* Game, struct user* User){
     int i;
+    static char mess[50];
+    strcpy(mess, "3~playerJoined~");
+    strcat(mess, User->name);
+    strcat(mess, "\n");
     for (i = 0; i < Game->playingPos; i++) {
-		/*	Game->playing[i]->ownThread.getOwnThread().out.println("3~playerJoined~"+joined.getName());*/
-		}
+        sendMessage(Game->playing[i]->Client, mess);
+    }
 }
 
-/*
-void notifyGameAboutDraw(struct game* Game, struct user* User){
 
+void notifyGameAboutDraw(struct game* Game, struct user* User){
+    int i;
+    char mess[50];
+    char num[10];
+    strcpy(mess, "4~playerDraw~");
+    strcat(mess, User->name);
+    strcat(mess, "~");
+    sprintf(num, "%d" , User->handPos);
+    strcat(mess, num);
+    strcat(mess, "\n");
+    for (i = 0; i < Game->playingPos; i++) {
+        if(strcmp(Game->playing[i]->name, User->name)){
+            sendMessage(Game->playing[i]->Client, mess);
+        }
+    }
 }
 
 void notifyGameAboutEnough(struct game* Game, struct user* User){
-
+    int i;
+    char mess[50];
+    strcpy(mess, "3~playerEnough~");
+    strcat(mess, User->name);
+    strcat(mess, "\n");
+    for (i = 0; i < Game->playingPos; i++) {
+        if(strcmp(Game->playing[i]->name, User->name)){
+            sendMessage(Game->playing[i]->Client, mess);
+        }
+    }
 }
 
 void notifyGameAboutFold(struct game* Game, struct user* User){
-
+    int i;
+    char mess[50];
+    strcpy(mess, "3~fold~");
+    strcat(mess, User->name);
+    strcat(mess, "\n");
+    for (i = 0; i < Game->playingPos; i++) {
+        sendMessage(Game->playing[i]->Client, mess);
+    }
 }
- */
+
 
 void tryToEndGame(struct game* Game){
     int isEndable = 1;
@@ -152,10 +186,20 @@ void endGame(struct game* Game){
         strcat(result,winners[i]->name);
     }
     strcat(result, "\n");
-    /*
+
     notifyGameAboutWin(Game, result);
-     */
+
 }
-/*
-void notifyGameAboutWin(struct game* Game, char* winners);
- */
+
+void notifyGameAboutWin(struct game* Game, char* winners){
+    int i;
+    for (i = 0; i < Game->playingPos; i++) {
+        sendMessage(Game->playing[i]->Client, winners);
+    }
+    sleep(3);
+    resetGameDeck(Game);
+    for (i = 0; i < Game->playingPos; i++) {
+        resetUser(Game->playing[i]);
+        sendMessage(Game->playing[i]->Client, "2~reset\n");
+    }
+}

@@ -13,13 +13,6 @@
 
 #define		BUFFSIZE	1000
 
-void* test(void * voidClient){
-    struct client* Client = (struct client*)voidClient;
-    while(1) {
-        sleep(1);
-        printf("Server vidi klienta %p\n", (void *) &Client->tid);
-    }
-}
 
 
 struct client* createClient(struct server* Server, int socket){
@@ -27,15 +20,16 @@ struct client* createClient(struct server* Server, int socket){
     Client = malloc(sizeof(struct client));
     Client->Server = Server;
     Client->socket = socket;
-    printf("creaaating\n");
+
     pthread_create(&Client->tid, NULL, runClient, Client);
-    printf("detaching\n");
+
     pthread_detach(Client->tid);
 
     return Client;
 }
 
 void* runClient(void * voidClient){
+    char* p;
     struct client* Client = (struct client*)voidClient;
     char buf[BUFFSIZE];
     int c_sockfd = Client->socket;
@@ -46,12 +40,13 @@ void* runClient(void * voidClient){
             perror("Chyba pri cteni\n");
             break;
         }else {
-            printf("Server gets: %s", buf);
+            p = strtok(buf, "\r\n");
+            while (p != NULL){
+                printf("Server gets: %s\n", p);
+                recieve(Client, p);
+                p = strtok(NULL, "\r\n");
+            }
 
-            /*          */
-           recieve(Client, buf);
-
-            /*          */
 
 
         }
@@ -69,7 +64,7 @@ int recieve(struct client* Client, char* mess){
     char* p;
     char* array[10];
     char buf_out[BUFFSIZE];
-    int c_sockfd = Client->socket;
+    int found = 1;
     memset(buf_out, 0, sizeof(buf_out));
     for (i = 0; i < 10; ++i) {
         array[i] = malloc(sizeof(char*));
@@ -89,7 +84,7 @@ int recieve(struct client* Client, char* mess){
 
 
     type = array[1];
-    int found = 1;
+
     if(strcmp(type,"login") == 0) {
         strcpy(buf_out, login(Client, array[2], array[3]));
     }else if(strcmp(type,"tables") == 0){
@@ -98,13 +93,18 @@ int recieve(struct client* Client, char* mess){
         strcpy(buf_out, getTablePlaying(Client, (int)strtol(array[2],(char **)NULL, 10)));
     }else if(strcmp(type,"join") == 0){
         strcpy(buf_out, join(Client, (int)strtol(array[2],(char **)NULL, 10)));
-    }else if(strcmp(type,"logout\r\n") == 0){
-        printf("done\n");
+    }else if(strcmp(type,"logout") == 0){
         strcpy(buf_out, logout(Client));
         printf("%s\n",buf_out);
         /*
          TODO interrupt
         */
+    }else if(strcmp(type,"players") == 0){
+        getPlayers(Client);
+    }else if(strcmp(type,"draw") == 0){
+        drawCard(Client);
+    }else if(strcmp(type,"enough") == 0){
+        enough(Client);
     }else{found = 0;}
         /*
 
@@ -126,17 +126,25 @@ int recieve(struct client* Client, char* mess){
         }
     }
         */
+    freeArray(array, 10);
     if(found){
-        printf("Server sends: %s", buf_out);
-        if (send(c_sockfd, buf_out, strlen(buf_out), 0) == -1) {
-            perror("Chyba pri zapisu");
-            freeArray(array, 10);
+        if(sendMessage(Client, buf_out)){
             return 1;
         }
     }
-    freeArray(array, 10);
+
     return 0;
 
+}
+
+int sendMessage(struct client* Client, char* buf_out){
+    int c_sockfd = Client->socket;
+    printf("%p Server sends %s", (void *)&Client->tid, buf_out);
+    if (send(c_sockfd, buf_out, strlen(buf_out), 0) == -1) {
+        perror("Chyba pri zapisu");
+        return 1;
+    }
+    return 0;
 }
 
 char* login(struct client* Client, char* name, char* password){
@@ -164,7 +172,7 @@ char* login(struct client* Client, char* name, char* password){
             return mess;
         }
     }
-    newUser = createUser(name, password, &Client->tid);
+    newUser = createUser(name, password, Client);
     newUser->logged = 1;
     addUser(Client->Server->users, newUser);
     Client->currentlyLogged = newUser;
@@ -228,4 +236,56 @@ char* logout(struct client* Client){
     Client->currentlyPlaying = NULL;
     strcpy(mess, "3~logout~success\n");
     return mess;
+}
+
+void getPlayers(struct client* Client){
+    int i;
+    char mess[50];
+    for (i = 0; i < Client->currentlyPlaying->playingPos; i++) {
+        /* nerovnost */
+        if(strcmp(Client->currentlyPlaying->playing[i]->name, Client->currentlyLogged->name)){
+            strcpy(mess, "3~playerJoined~");
+            strcat(mess, Client->currentlyPlaying->playing[i]->name);
+            strcat(mess, "\n");
+            sendMessage(Client, mess);
+        }
+    }
+}
+
+void drawCard(struct client* Client){
+    char num[10];
+    char mess[50];
+    if(Client->currentlyLogged->hasEnough){
+        sendMessage(Client, "3~draw~haveEnough\n");
+    }else if(isUserOver(Client->currentlyLogged)){
+        sendMessage(Client, "3~draw~areOver\n");
+    }else if(Client->currentlyPlaying->deckPos > 0){
+        sprintf(num, "%d" , drawUserCard(Client->currentlyLogged));
+        strcpy(mess, "4~draw~success~");
+        strcat(mess, num);
+        strcat(mess, "\n");
+        sendMessage(Client, mess);
+        notifyGameAboutDraw(Client->currentlyPlaying, Client->currentlyLogged);
+    }
+    if(isUserOver(Client->currentlyLogged)){
+        fold(Client);
+    }
+    tryToEndGame(Client->currentlyPlaying);
+}
+
+void enough(struct client* Client){
+    if(!isUserOver(Client->currentlyLogged)){
+        userEnough(Client->currentlyLogged);
+        sendMessage(Client, "3~enough~success\n");
+        notifyGameAboutEnough(Client->currentlyPlaying, Client->currentlyLogged);
+    }else{
+        sendMessage(Client, "3~enough~areOver\n");
+    }
+    tryToEndGame(Client->currentlyPlaying);
+}
+
+void fold(struct client* Client){
+    if(isUserOver(Client->currentlyLogged)){
+        notifyGameAboutFold(Client->currentlyPlaying, Client->currentlyLogged);
+    }
 }
