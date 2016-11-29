@@ -1,12 +1,12 @@
 #ifndef INC_1_SERVER_H
 #define INC_1_SERVER_H
-#define		TABLECNT	5
 
 #include "dynArray.h"
 
 struct server{
+    int numberOfTables;
     struct dynUserArray* users;
-    struct game* tables[TABLECNT];
+    struct game** tables;
     struct dynClientArray* threads;
     int port;
 };

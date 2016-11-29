@@ -8,6 +8,8 @@ struct game* createGame(int id){
     struct game* Game;
     Game = malloc(sizeof(struct game));
     Game->id = id;
+    Game->playingPos = 0;
+    Game->deckPos = 32;
     return Game;
 }
 
@@ -83,12 +85,16 @@ void kickGameUser(struct game* Game, struct user* User){
         }
     }
 }
-/*
+
 
 void notifyGameAboutJoin(struct game* Game, struct user* User){
-
+    int i;
+    for (i = 0; i < Game->playingPos; i++) {
+		/*	Game->playing[i]->ownThread.getOwnThread().out.println("3~playerJoined~"+joined.getName());*/
+		}
 }
 
+/*
 void notifyGameAboutDraw(struct game* Game, struct user* User){
 
 }

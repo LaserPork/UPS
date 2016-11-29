@@ -28,4 +28,11 @@ int recieve(struct client* Client, char* mess);
 
 char* login(struct client* Client, char* name, char* password);
 
+char* getTables(struct client* Client);
+
+char* getTablePlaying(struct client* Client, int id);
+
+char* join(struct client* Client, int id);
+
+char* logout(struct client* Client);
 #endif

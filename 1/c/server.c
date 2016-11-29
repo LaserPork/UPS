@@ -24,10 +24,13 @@ struct server* createServer(int port, int numberOfTables){
     int i;
     struct server* Server;
     Server = malloc(sizeof(struct server));
+    Server->numberOfTables = numberOfTables;
     Server->users = createUserArray();
     Server->threads = createClientArray();
-    for (i = 0; i < numberOfTables; ++i) {
+    Server->tables = malloc(sizeof(struct game*) * numberOfTables);
+    for (i = 0; i < numberOfTables; i++) {
         Server->tables[i] = createGame(i);
+
     }
     Server->port = port;
     return Server;
