@@ -16,7 +16,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
 import javafx.scene.Node;
-
+import javafx.scene.control.Label;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.input.MouseEvent;
 
 import javafx.scene.layout.StackPane;
@@ -34,24 +35,25 @@ import javafx.scene.text.Text;
 import javafx.util.Callback;
 import javafx.util.Duration;
 
-public class Table {
+public class Table extends StackPane{
 	
-	private StackPane platno;
 	private Connection connection;
 	private Map<String, Callback<String, Object>> callbacks;
 	private Group hand = new Group();//(320, 540, 640, 180);
 	private ArrayList<Group> otherHands = new ArrayList<Group>();
 	private Map<Node,RotateTransition> animations = new HashMap<Node,RotateTransition>();
 	private Group info = new Group();
+	AppStage as;
 	
-	public Table(StackPane platno, Connection connection,Map<String, Callback<String, Object>> callbacks){
-		this.platno = platno;
+	public Table(AppStage as, Connection connection,Map<String, Callback<String, Object>> callbacks){
+		super();
 		this.connection = connection;
 		this.callbacks = callbacks;
+		initTableView();
+		callbacks.clear();
 		initCallbacks();
-		
 		connection.askPlayers();
-		connection.drawCard();
+		this.as = as;
 	}
 	
 	public void initCallbacks(){
@@ -88,8 +90,24 @@ public class Table {
 					);
 					break;
 					case "haveEnough":
+						Platform.runLater(
+								new Runnable() {
+									@Override
+									public void run() {
+										enough();
+									}
+								}
+						);
 					break;
 					case "areOver":
+						Platform.runLater(
+								new Runnable() {
+									@Override
+									public void run() {
+										fold();
+									}
+								}
+						);
 					break;
 				}
 				
@@ -142,7 +160,11 @@ public class Table {
 							public void run() {
 								String[] ar = mess.split("~");
 								String nick = ar[2];
-								playerEnough(nick);
+								if(!nick.equals(connection.nick)){									
+									playerEnough(nick);
+								}else{
+									fold();
+								}
 							}
 						}
 				);
@@ -151,7 +173,7 @@ public class Table {
 			}
 		});
 		
-		callbacks.put("fold", new Callback<String, Object>() {
+		callbacks.put("playerLeft", new Callback<String, Object>() {
 			public Object call(String mess) {
 				Platform.runLater(
 						new Runnable() {
@@ -159,9 +181,7 @@ public class Table {
 							public void run() {
 								String[] ar = mess.split("~");
 								String nick = ar[2];
-								if(nick.equals(connection.nick)){
-									fold();
-								}else{
+								if(!nick.equals(connection.nick)){
 									playerFolds(nick);									
 								}
 							}
@@ -171,6 +191,7 @@ public class Table {
 				return null;
 			}
 		});
+		
 		
 		callbacks.put("end", new Callback<String, Object>() {
 			public Object call(String mess) {
@@ -185,7 +206,7 @@ public class Table {
 									if(ar[2].equals(connection.nick)){
 										win();
 									}else{
-										playerWon(ar[2]);
+									//	playerWon(ar[2]);
 										lose();
 									}
 								}else if(ar.length > 3){
@@ -194,7 +215,7 @@ public class Table {
 										if(ar[i].equals(connection.nick)){
 											draw();
 										}else{
-											playerDraw(ar[i]);									
+										//	playerDraw(ar[i]);									
 										}
 									}
 								}
@@ -222,22 +243,98 @@ public class Table {
 			}
 		});
 		
+		callbacks.put("checkPlayers", new Callback<String, Object>() {
+			public Object call(String mess) {
+				Platform.runLater(
+						new Runnable() {
+							@Override
+							public void run() {
+								String[] ar = mess.split("~");
+								String[] nicks = new String[ar.length-2];
+								for (int i = 0; i < nicks.length; i++) {
+									nicks[i] = ar[i+2];							
+								}
+								updatePlayers(nicks);
+							}
+						}
+				);
+				
+				return null;
+			}
+		});
+		
+		callbacks.put("checkCards", new Callback<String, Object>() {
+			public Object call(String mess) {
+				Platform.runLater(
+						new Runnable() {
+							@Override
+							public void run() {
+								String[] ar = mess.split("~");
+								String[] cards = new String[ar.length-2];
+								for (int i = 0; i < cards.length; i++) {
+									cards[i] = ar[i+2];							
+								}
+								updateCards(cards);
+							}
+						}
+				);
+				
+				return null;
+			}
+		});
+		
+		callbacks.put("return", new Callback<String, Object>() {
+			public Object call(String mess) {
+						Platform.runLater(
+								new Runnable() {
+									@Override
+									public void run() {
+										as.setTableStage();
+									}
+								}
+						);
+						
+				return null;
+			}
+		});
+		
+	}
+	
+	public void disconnect(){
+		ColorAdjust ca = new ColorAdjust();
+		ca.setSaturation(-1);
+		setEffect(ca);
+		Text disc = new Text("Disconnected from server");
+		disc.setFont(new Font(70));
+		disc.setFill(Color.RED);
+		disc.setTranslateY(360);
+		disc.setTranslateX(640-disc.getLayoutBounds().getWidth()/2);
+		disc.setEffect(null);
+		((Group)((Group)getChildren().get(0)).getChildren().get(0)).getChildren().add(disc);
+		disc.setEffect(null);
+		setOnMouseClicked(new EventHandler<MouseEvent>() {
+			@Override
+			public void handle(MouseEvent event) {
+				as.setLoginStage();
+				as.setLoginValues(connection.server, connection.port, connection.nick, connection.password);
+			}
+		});
 	}
 	
 	public void initTableView(){
-		platno.setAlignment(Pos.CENTER);
+		setAlignment(Pos.CENTER);
 		Group group = new Group();
 		Group obal = new Group(group);
-		platno.getChildren().add(obal);
+		getChildren().add(obal);
 		group.setClip(new Rectangle(0, 0, 1280, 720));
-		platno.widthProperty().addListener(new ChangeListener<Number>() {
+		widthProperty().addListener(new ChangeListener<Number>() {
 			@Override
 			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
 				Double scale = newValue.doubleValue()/1280.0;
 				group.setScaleX(scale);
 				
 		}});
-		platno.heightProperty().addListener(new ChangeListener<Number>() {
+		heightProperty().addListener(new ChangeListener<Number>() {
 			@Override
 			public void changed(ObservableValue<? extends Number> observable, Number oldValue, Number newValue) {
 				Double scale = newValue.doubleValue()/720.0;
@@ -254,10 +351,12 @@ public class Table {
 		
 		Group enough = createEnough();
 		
+		Text back = createBackButton();
 		
 		group.getChildren().add(deck);
 		group.getChildren().add(enough);
 		group.getChildren().add(info);
+		group.getChildren().add(back);
 		
 		hand.setTranslateX(320);
 		hand.setTranslateY(540);
@@ -284,7 +383,25 @@ public class Table {
 		
 		
 		group.getChildren().addAll(h1,h2,h3,h4);
+		connection.checkCards();
+		connection.askPlayers();
+	}
+	
+	public Text createBackButton(){
+		Text back = new Text("Back");
+		back.setFill(Color.RED);
+		back.setFont(new Font(30));
+		back.setTranslateY(715);
+		back.setTranslateX(1275-back.getLayoutBounds().getWidth());
+		back.setOnMouseClicked(new EventHandler<MouseEvent>() {
+
+			@Override
+			public void handle(MouseEvent arg0) {
+				connection.returnBack();
+			}
+		});
 		
+		return back;
 	}
 	
 	public Group createDrawDeck(){
@@ -299,12 +416,12 @@ public class Table {
 		deck.setOnMouseEntered(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent event) {
-				platno.getScene().setCursor(Cursor.HAND);
+				getScene().setCursor(Cursor.HAND);
 			}
 		});deck.setOnMouseExited(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent event) {
-				platno.getScene().setCursor(Cursor.DEFAULT);
+				getScene().setCursor(Cursor.DEFAULT);
 			}
 		});
 		deck.setTranslateX(530);
@@ -325,12 +442,12 @@ public class Table {
 		deck.setOnMouseEntered(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent event) {
-				platno.getScene().setCursor(Cursor.HAND);
+				getScene().setCursor(Cursor.HAND);
 			}
 		});deck.setOnMouseExited(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent event) {
-				platno.getScene().setCursor(Cursor.DEFAULT);
+				getScene().setCursor(Cursor.DEFAULT);
 			}
 		});
 		deck.setTranslateX(650);
@@ -338,8 +455,6 @@ public class Table {
 		
 		return deck;
 	}
-	
-	
 	
 	public void drawCard(int cardId){
 		Group card = new Group();
@@ -362,20 +477,39 @@ public class Table {
 	}
 	
 	public void joinPlayer(String nick){
-		ArrayList<Group> empty = new ArrayList<Group>();
-		for (int i = 0; i < otherHands.size(); i++) {
-			if(otherHands.get(i).getChildren().isEmpty()){
-				empty.add(otherHands.get(i));
+		if(getPlayer(nick) == null){
+			ArrayList<Group> empty = new ArrayList<Group>();
+			for (int i = 0; i < otherHands.size(); i++) {
+				if(otherHands.get(i).getChildren().isEmpty()){
+					empty.add(otherHands.get(i));
+				}
+			}
+			if(empty.isEmpty()){
+				return;
+			}
+			Group emptySpace = empty.get((int)(Math.random()*empty.size()));
+			Group cards = createOtherHand(nick);
+			cards.setTranslateX(100);
+			cards.setTranslateY(75);
+			emptySpace.getChildren().add(cards);
+		}else{
+			Group hand = getPlayer(nick);
+			if(hand != null){
+				hand.getChildren().get(0).setOpacity(1);
 			}
 		}
-		if(empty.isEmpty()){
-			return;
+	}
+	
+	public void kickPlayer(String nick){
+		for (int i = 0; i < otherHands.size(); i++) {
+			if(!otherHands.get(i).getChildren().isEmpty()){
+				Group hand = (Group)otherHands.get(i).getChildren().get(0);
+				String name = ((Text)hand.getChildren().get(4)).getText();
+				if(name.equals(nick)){
+					otherHands.get(i).getChildren().clear();
+				}
+			}
 		}
-		Group emptySpace = empty.get((int)(Math.random()*empty.size()));
-		Group cards = createOtherHand(nick);
-		cards.setTranslateX(100);
-		cards.setTranslateY(75);
-		emptySpace.getChildren().add(cards);
 	}
 	
 	public Group createOtherHand(String nick){
@@ -480,7 +614,9 @@ public class Table {
 	
 	public void playerDrawsCard(String nick, int cards){
 		Group hand = getPlayer(nick);
-		((Text)hand.getChildren().get(3)).setText(String.valueOf(cards));
+		if(hand.getChildren() != null){
+			((Text)hand.getChildren().get(3)).setText(String.valueOf(cards));
+		}
 		
 	}
 	
@@ -493,6 +629,7 @@ public class Table {
 				}
 			}
 		}
+		connection.askPlayers();
 		return null;
 	}
 	
@@ -518,7 +655,6 @@ public class Table {
 		}
 		this.hand.getChildren().clear();
 		this.hand.setOpacity(1);
-		connection.drawCard();
 	}
 	
 	public void createRotationAnimation(Group hand){
@@ -584,15 +720,11 @@ public class Table {
 			
 			@Override
 			protected double curve(double t) {
-				// TODO Auto-generated method stub
+				
 				return t<0.5?0:1;
 			}
 		});*/
 	    fd.play();
-	}
-	
-	public void playerWon(String nick){
-		
 	}
 	
 	public void draw(){
@@ -612,10 +744,6 @@ public class Table {
 	    st.play();
 	}
 	
-	public void playerDraw(String nick){
-		
-	}
-	
 	public void lose(){
 		info.getChildren().clear();
 		Text t = new Text("Lost");
@@ -631,5 +759,58 @@ public class Table {
 	    
 	    st.setByY(1.05f);
 	    st.play();
+	}
+	
+	public void updatePlayers(String[] nicks){
+		ArrayList<String> currNames = getCurrentPlayerNames();
+		for (int i = 0; i < currNames.size(); i++) {
+			boolean found = false;
+			for (int j = 0; j < nicks.length; j++) {
+				if(nicks[j].equals(currNames.get(i))){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				kickPlayer(currNames.get(i));
+			}
+		}
+	}
+
+	public void updateCards(String[] cards){
+		this.hand.getChildren().clear();
+		for (int i = 0; i < cards.length; i++) {
+			drawCard(Integer.parseInt(cards[i]));
+		}
+	}
+
+	public ArrayList<String> getCurrentPlayerNames(){
+		ArrayList<String> names = new ArrayList<String>();
+		for (int i = 0; i < otherHands.size(); i++) {
+			if(!otherHands.get(i).getChildren().isEmpty()){
+				Group hand = (Group)otherHands.get(i).getChildren().get(0);
+				names.add(((Text)hand.getChildren().get(4)).getText());
+			}
+		}
+		return names;
+	}
+	
+	public void freeze(){
+		ColorAdjust ca = new ColorAdjust();
+		ca.setSaturation(-1);
+		setEffect(ca);
+		setOnMouseClicked(new EventHandler<MouseEvent>() {
+			@Override
+			public void handle(MouseEvent event) {
+				as.setLoginStage();
+				as.setLoginValues(connection.server, connection.port, connection.nick, connection.password);
+			}
+		});
+	}
+	
+
+	public void unfreeze(){
+		setEffect(null);
+		setOnMouseClicked(null);
 	}
 }

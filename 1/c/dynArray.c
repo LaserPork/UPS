@@ -25,33 +25,41 @@ struct dynClientArray* createClientArray(){
 }
 
 void addUser(struct dynUserArray* array, struct user* user){
-    struct user** a = array->array;
-    if(array->arrayPos == array->arraySize){
-        array->arraySize *= 2;
-        array->array = malloc(sizeof(struct user*) * array->arraySize);
-        memcpy(array->array, a, sizeof(struct user*) * array->arraySize/2);
-        free(a);
+    struct user **a;
+    if(array != NULL && user != NULL) {
+        a = array->array;
+        if (array->arrayPos == array->arraySize) {
+            array->arraySize *= 2;
+            array->array = malloc(sizeof(struct user *) * array->arraySize);
+            memcpy(array->array, a, sizeof(struct user *) * array->arraySize / 2);
+            free(a);
+        }
+        array->array[array->arrayPos] = user;
+        array->arrayPos++;
     }
-    array->array[array->arrayPos] = user;
-    array->arrayPos++;
 }
 
 void addClient(struct dynClientArray* array, struct client* client){
-    struct client** a = array->array;
-    if(array->arrayPos == array->arraySize){
-        array->arraySize *= 2;
-        array->array = malloc(sizeof(struct client*) * array->arraySize);
-        memcpy(array->array, a, sizeof(struct client*) * array->arraySize/2);
-        free(a);
+    struct client** a;
+    if(array != NULL && client != NULL) {
+        a = array->array;
+        if (array->arrayPos == array->arraySize) {
+            array->arraySize *= 2;
+            array->array = malloc(sizeof(struct client *) * array->arraySize);
+            memcpy(array->array, a, sizeof(struct client *) * array->arraySize / 2);
+            free(a);
+        }
+        array->array[array->arrayPos] = client;
+        array->arrayPos++;
     }
-    array->array[array->arrayPos] = client;
-    array->arrayPos++;
 }
 
 void freeArray(char** array, int size){
     int i;
-    for (i = 0; i < size; ++i) {
-        free(array[i]);
+    if(array != NULL) {
+        for (i = 0; i < size; ++i) {
+            free(array[i]);
+        }
     }
 }
 

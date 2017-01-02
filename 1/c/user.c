@@ -1,6 +1,4 @@
 #include "user.h"
-#include "game.h"
-#include <string.h>
 #include <stdlib.h>
 
 
@@ -10,19 +8,28 @@ struct user* createUser(char *name, char *password, struct client* Client){
     User = malloc(sizeof(struct user));
     User->name = malloc(sizeof(char) * 20);
     User->password = malloc(sizeof(char) * 20);
-    strcpy(User->name, name);
-    strcpy(User->password, password);
+    strncpy(User->name, name, 19);
+    strncpy(User->password, password, 19);
     User->Client = Client;
     User->handPos = 0;
     User->logged = 0;
     User->hasEnough = 0;
-
+    User->active = 0;
+    User->leaving = 0;
     return User;
 }
 
 void resetUser(struct user* User){
     dropUserHand(User);
     User->hasEnough = 0;
+    if(User->leaving){
+        kickGameUser(User->Client->currentlyPlaying, User);
+    }else {
+        User->active = 1;
+    }
+    if(User->logged == 0){
+        kickGameUser(User->Client->currentlyPlaying, User);
+    }
 }
 
 void userEnough(struct user* User){
@@ -75,4 +82,7 @@ int getCardValue(int cardId){
     }
     return -9999;
 }
+
+
+
 

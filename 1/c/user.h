@@ -10,6 +10,8 @@ struct user{
     struct game *game;
     int hand[32];
     int handPos;
+    int active;
+    int leaving;
     struct client* Client;
 
     int logged;
