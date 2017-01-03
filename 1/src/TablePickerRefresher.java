@@ -4,7 +4,7 @@ public class TablePickerRefresher extends Thread{
 	
 	private TableView<TableViewCell> tables;
 	private Connection connection;
-
+	private boolean running = true;
 	
 	public TablePickerRefresher(TableView<TableViewCell> tables, Connection connection){
 		this.tables = tables;
@@ -12,7 +12,7 @@ public class TablePickerRefresher extends Thread{
 	}
 	
 	public void run(){
-		while(true){
+		while(running){
 			for (int i = 0; i < tables.getItems().size(); i++) {
 				connection.askTable(i);
 				try {
@@ -20,9 +20,16 @@ public class TablePickerRefresher extends Thread{
 				} catch (Exception e) {
 					return;
 				}
+				if(!running){
+					break;
+				}
 			
 			}
 		}
+	}
+	
+	public void stopRefreshing(){
+		this.running = false;
 	}
 	
 }

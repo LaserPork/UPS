@@ -24,9 +24,14 @@ void* timer(void * voidGame){
     for (i = 0; i < Game->playingPos; ++i) {
         if(Game->playing[i]->Client != NULL) {
             enough(Game->playing[i]->Client);
+        }else{
+            userEnough(Game->playing[i]);
+            notifyGameAboutEnough(Game->playing[i]->game, Game->playing[i]);
         }
+
     }
-    return 0;
+    tryToEndGame(Game);
+    return NULL;
 }
 
 void resetGameDeck(struct game* Game){
@@ -54,16 +59,20 @@ int isGameFirstTurn(struct game* Game){
 }
 
 int drawGameCard(struct game* Game){
+    int card;
+    int found;
+    int cardId;
+    int i;
     if(Game != NULL) {
         if (isGameFirstTurn(Game)) {
             resetGameDeck(Game);
             runGame(Game);
         }
         if (Game->deckPos > 0) {
-            int card = rand() % Game->deckPos;
-            int found = 0;
-            int cardId = -1;
-            int i;
+            srand( (unsigned int)time(NULL) );
+            card = rand() % Game->deckPos;
+            found = 0;
+            cardId = -1;
             for (i = 0; i < Game->deckPos; ++i) {
                 if (i == card) {
                     cardId = Game->deck[i];
@@ -95,6 +104,8 @@ void joinGameUser(struct game* Game, struct user* User){
             if (strncmp(Game->playing[i]->name, User->name, 19) == 0) {
                 found = 1;
                 User->active = 1;
+                notifyGameAboutComingBack(Game, User);
+                break;
             }
         }
         User->game = Game;
@@ -102,6 +113,9 @@ void joinGameUser(struct game* Game, struct user* User){
         if(!found) {
             Game->playing[Game->playingPos] = User;
             Game->playingPos++;
+            if(isGameFirstTurn(Game)){
+                User->active = 1;
+            }
         }
     }
 }
@@ -149,6 +163,20 @@ void notifyGameAboutJoin(struct game* Game, struct user* User){
     }
 }
 
+void notifyGameAboutComingBack(struct game* Game, struct user* User){
+    int i;
+    char mess[50];
+    if(Game != NULL && User != NULL) {
+        strcpy(mess, "3~playerCameBack~");
+        strcat(mess, User->name);
+        strcat(mess, "\n");
+        for (i = 0; i < Game->playingPos; i++) {
+            if (strcmp(Game->playing[i]->name, User->name)) {
+                sendMessage(Game->playing[i]->Client, mess);
+            }
+        }
+    }
+}
 
 void notifyGameAboutDraw(struct game* Game, struct user* User){
     int i;
@@ -276,7 +304,9 @@ void resetGame(struct game* Game){
     if(Game != NULL) {
         resetGameDeck(Game);
         for (i = 0; i < Game->playingPos; i++) {
-            resetUser(Game->playing[i]);
+            if(resetUser(Game->playing[i])){
+                i--;
+            }
         }
         notifyGameAboutPlayers(Game);
         for (i = 0; i < Game->playingPos; i++) {

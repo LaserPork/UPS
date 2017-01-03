@@ -18,12 +18,8 @@ struct client{
     pthread_t checkerTid;
     struct server* Server;
     struct user* currentlyLogged;
-    struct game* currentlyPlaying;
 };
 
-void freeClient(struct client* Client);
-
-void disconnectClient(struct client* Client);
 
 struct client* createClient(struct server* Server, int socket);
 
@@ -57,6 +53,6 @@ void fold(struct client* Client);
 
 char* checkPlayers(struct client* Client);
 
-char* checkCards(struct client* Client);
+void checkCards(struct client* Client);
 
 #endif

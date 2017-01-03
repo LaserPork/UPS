@@ -22,11 +22,11 @@ struct client* createClient(struct server* Server, int socket){
     pthread_create(&Client->tid, NULL, runClient, Client);
 
     pthread_detach(Client->tid);
-/*
+
     pthread_create(&Client->checkerTid, NULL, runChecker, Client);
 
     pthread_detach(Client->checkerTid);
-*/
+
     return Client;
 }
 
@@ -137,15 +137,15 @@ int recieve(struct client* Client, char* mess){
         return 1;
     }else if(strcmp(type,"players") == 0){
         getPlayers(Client);
-        for(i = 0; i < Client->currentlyPlaying->playingPos; i++){
-            notifyGameAboutDraw(Client->currentlyPlaying, Client->currentlyPlaying->playing[i]);
+        for(i = 0; i < Client->currentlyLogged->game->playingPos; i++){
+            notifyGameAboutDraw(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
         }
-        for(i = 0; i < Client->currentlyPlaying->playingPos; i++){
-            if(!Client->currentlyPlaying->playing[i]->active){
-                notifyGameAboutLeave(Client->currentlyPlaying, Client->currentlyPlaying->playing[i]);
+        for(i = 0; i < Client->currentlyLogged->game->playingPos; i++){
+            if(!Client->currentlyLogged->game->playing[i]->active){
+                notifyGameAboutLeave(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
             }
-            if(Client->currentlyPlaying->playing[i]->hasEnough){
-                notifyGameAboutEnough(Client->currentlyPlaying, Client->currentlyPlaying->playing[i]);
+            if(Client->currentlyLogged->game->playing[i]->hasEnough){
+                notifyGameAboutEnough(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
             }
         }
         sendMessage(Client, "3~players~success\n");
@@ -156,7 +156,7 @@ int recieve(struct client* Client, char* mess){
     }else if(strcmp(type,"return") == 0){
         strcpy(buf_out, returnBack(Client));
     }else if(strcmp(type,"checkCards") == 0){
-        strcpy(buf_out, checkCards(Client));
+        checkCards(Client);
     }else if(strcmp(type,"checkPlayers") == 0){
         strcpy(buf_out, checkPlayers(Client));
     }else{found = 0;}
@@ -305,7 +305,7 @@ char* join(struct client* Client, int id){
                 strcat(mess, "\n");
                 return mess;
             }
-            Client->currentlyPlaying = Game;
+            Client->currentlyLogged->game = Game;
             joinGameUser(Game, Client->currentlyLogged);
             notifyGameAboutJoin(Game, Client->currentlyLogged);
             strcpy(mess, "4~join~");
@@ -323,10 +323,13 @@ char* logout(struct client* Client){
     if(Client != NULL) {
         if (Client->currentlyLogged != NULL) {
             Client->currentlyLogged->active = 0;
-            notifyGameAboutLeave(Client->currentlyPlaying, Client->currentlyLogged);
+            notifyGameAboutLeave(Client->currentlyLogged->game, Client->currentlyLogged);
             Client->currentlyLogged->leaving = 1;
             Client->currentlyLogged->logged = 0;
             Client->currentlyLogged->Client = NULL;
+            if(isGameFirstTurn(Client->currentlyLogged->game)){
+                resetGame(Client->currentlyLogged->game);
+            }
         }
         strcpy(mess, "3~logout~success\n");
     }else{
@@ -340,8 +343,11 @@ char* returnBack(struct client* Client){
     if(Client != NULL) {
         if (Client->currentlyLogged != NULL) {
             Client->currentlyLogged->active = 0;
-            notifyGameAboutLeave(Client->currentlyPlaying, Client->currentlyLogged);
+            notifyGameAboutLeave(Client->currentlyLogged->game, Client->currentlyLogged);
             Client->currentlyLogged->leaving = 1;
+            if(isGameFirstTurn(Client->currentlyLogged->game)){
+                resetGame(Client->currentlyLogged->game);
+            }
         }
         strcpy(mess, "3~return~success\n");
     }else{
@@ -354,12 +360,14 @@ void getPlayers(struct client* Client){
     int i;
     char mess[50];
     if(Client != NULL) {
-        for (i = 0; i < Client->currentlyPlaying->playingPos; i++) {
-            if (strcmp(Client->currentlyPlaying->playing[i]->name, Client->currentlyLogged->name)) {
-                strcpy(mess, "3~playerJoined~");
-                strcat(mess, Client->currentlyPlaying->playing[i]->name);
-                strcat(mess, "\n");
-                sendMessage(Client, mess);
+        if(Client->currentlyLogged->game != NULL) {
+            for (i = 0; i < Client->currentlyLogged->game->playingPos; i++) {
+                if (strcmp(Client->currentlyLogged->game->playing[i]->name, Client->currentlyLogged->name)) {
+                    strcpy(mess, "3~playerJoined~");
+                    strcat(mess, Client->currentlyLogged->game->playing[i]->name);
+                    strcat(mess, "\n");
+                    sendMessage(Client, mess);
+                }
             }
         }
     }else{
@@ -371,8 +379,8 @@ void drawCard(struct client* Client){
     char num[10];
     char mess[50];
     if(Client != NULL) {
-        if (Client->currentlyLogged != NULL && Client->currentlyPlaying != NULL) {
-            if (isGameFirstTurn(Client->currentlyPlaying)) {
+        if (Client->currentlyLogged != NULL && Client->currentlyLogged->game != NULL) {
+            if (isGameFirstTurn(Client->currentlyLogged->game)) {
                 Client->currentlyLogged->active = 1;
             }
             if (!Client->currentlyLogged->active) {
@@ -381,18 +389,18 @@ void drawCard(struct client* Client){
                 sendMessage(Client, "3~draw~haveEnough\n");
             } else if (isUserOver(Client->currentlyLogged)) {
                 sendMessage(Client, "3~draw~areOver\n");
-            } else if (Client->currentlyPlaying->deckPos > 0) {
+            } else if (Client->currentlyLogged->game->deckPos > 0) {
                 sprintf(num, "%d", drawUserCard(Client->currentlyLogged));
                 strcpy(mess, "4~draw~success~");
                 strcat(mess, num);
                 strcat(mess, "\n");
                 sendMessage(Client, mess);
-                notifyGameAboutDraw(Client->currentlyPlaying, Client->currentlyLogged);
+                notifyGameAboutDraw(Client->currentlyLogged->game, Client->currentlyLogged);
             }
             if (isUserOver(Client->currentlyLogged)) {
                 fold(Client);
             }
-            tryToEndGame(Client->currentlyPlaying);
+            tryToEndGame(Client->currentlyLogged->game);
         } else {
             sendMessage(Client, "3~draw~invalidOperation\n");
         }
@@ -403,15 +411,15 @@ void drawCard(struct client* Client){
 
 void enough(struct client* Client){
     if(Client != NULL) {
-        if(Client->currentlyLogged != NULL && Client->currentlyPlaying != NULL) {
+        if(Client->currentlyLogged != NULL && Client->currentlyLogged->game != NULL) {
             if (!isUserOver(Client->currentlyLogged)) {
                 userEnough(Client->currentlyLogged);
                 sendMessage(Client, "3~enough~success\n");
-                notifyGameAboutEnough(Client->currentlyPlaying, Client->currentlyLogged);
+                notifyGameAboutEnough(Client->currentlyLogged->game, Client->currentlyLogged);
             } else {
                 sendMessage(Client, "3~enough~areOver\n");
             }
-            tryToEndGame(Client->currentlyPlaying);
+            tryToEndGame(Client->currentlyLogged->game);
         }
     }else{
         printf("Client was null.\n");
@@ -420,9 +428,9 @@ void enough(struct client* Client){
 
 void fold(struct client* Client){
     if(Client != NULL) {
-        if(Client->currentlyLogged != NULL && Client->currentlyPlaying != NULL) {
+        if(Client->currentlyLogged != NULL && Client->currentlyLogged->game != NULL) {
             if (isUserOver(Client->currentlyLogged)) {
-                notifyGameAboutEnough(Client->currentlyPlaying, Client->currentlyLogged);
+                notifyGameAboutEnough(Client->currentlyLogged->game, Client->currentlyLogged);
             }
         }
     }else{
@@ -436,11 +444,11 @@ char* checkPlayers(struct client* Client){
     static char mess[100];
     struct game* Game;
     if(Client != NULL) {
-        if(Client->currentlyLogged != NULL && Client->currentlyPlaying != NULL) {
-            Game = Client->currentlyPlaying;
+        if(Client->currentlyLogged != NULL && Client->currentlyLogged->game != NULL) {
+            Game = Client->currentlyLogged->game;
 
             for (i = 0; i < Game->playingPos; ++i) {
-                if (!memcmp(Game->playing[i]->Client->currentlyPlaying, Game, sizeof(struct game))) {
+                if (!memcmp(Game->playing[i]->Client->currentlyLogged->game, Game, sizeof(struct game))) {
                     usrCnt++;
                 }
             }
@@ -449,7 +457,7 @@ char* checkPlayers(struct client* Client){
 
 
             for (i = 0; i < Game->playingPos; ++i) {
-                if (!memcmp(Game->playing[i]->Client->currentlyPlaying, Game, sizeof(struct game))) {
+                if (!memcmp(Game->playing[i]->Client->currentlyLogged->game, Game, sizeof(struct game))) {
                     strcat(mess, "~");
                     strcat(mess, Game->playing[i]->name);
                 }
@@ -463,23 +471,32 @@ char* checkPlayers(struct client* Client){
     return mess;
 }
 
-char* checkCards(struct client* Client){
+void checkCards(struct client* Client){
     int i;
     static char mess[100];
     static char num[5];
     if(Client != NULL) {
-        if(Client->currentlyLogged != NULL && Client->currentlyPlaying != NULL) {
+        if(Client->currentlyLogged != NULL && Client->currentlyLogged->game != NULL) {
             sprintf(mess, "%d", Client->currentlyLogged->handPos + 2);
             strcat(mess, "~checkCards");
             for (i = 0; i < Client->currentlyLogged->handPos; i++) {
                 strcat(mess, "~");
                 sprintf(num, "%d", Client->currentlyLogged->hand[i]);
                 strcat(mess, num);
+
             }
+
+        }
+        strcat(mess, "\n");
+        sendMessage(Client, mess);
+        if(Client->currentlyLogged->hasEnough){
+            sendMessage(Client, "3~enough~success\n");
+        }
+        if(isUserOver(Client->currentlyLogged)){
+            sendMessage(Client, "3~draw~areOver\n");
         }
     }else{
         printf("Client was null.\n");
     }
-    strcat(mess, "\n");
-    return mess;
+
 }

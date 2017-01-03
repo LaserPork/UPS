@@ -21,9 +21,9 @@ public class Checker extends Thread{
 	}
 	
 	public void run(){
-		for (int i = 0; i < 5; i++) {
+		for (int i = 0; i < 4; i++) {
 			try {
-				Thread.sleep(2000);
+				Thread.sleep(4000);
 			} catch (InterruptedException e) {
 				//Message came
 				System.out.println(response+" interrupted");
@@ -33,7 +33,7 @@ public class Checker extends Thread{
 			out.println(sent);
 		}
 		connection.as.freeze();
-		System.out.println(response+" FROZEN");
+		System.out.println(response+" froze");
 		
 	}
 }

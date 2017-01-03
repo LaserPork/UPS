@@ -468,18 +468,23 @@ public class AppStage{
 						if(stage.getScene().getRoot() instanceof Table){
 							((Table)stage.getScene().getRoot()).disconnect();
 						}else{
-							info.setText("Disconnected from server");
-							info.setTextFill(Color.RED);
-							stage.getScene().getRoot().setOnMouseClicked(new EventHandler<MouseEvent>() {
-								@Override
-								public void handle(MouseEvent event) {
-									stage.hide();
-									setLoginStage();
-									setLoginValues(connection.server, connection.port, connection.nick, connection.password);
-									stage.show();
-								}
-							});
+							if(!info.getText().equals("Account is currently logged")){
+								info.setText("Disconnected from server");
+								info.setTextFill(Color.RED);
+								stage.getScene().getRoot().setOnMouseClicked(new EventHandler<MouseEvent>() {
+									@Override
+									public void handle(MouseEvent event) {
+										if(!(stage.getScene().getRoot() instanceof VBox)){
+											stage.hide();
+											setLoginStage();
+											setLoginValues(connection.server, connection.port, connection.nick, connection.password);
+											stage.show();
+										}
+									}
+								});
+							}
 						}
+						
 					}
 				}
 		);
@@ -498,16 +503,20 @@ public class AppStage{
 						}else{
 							info.setText("Cannot get response from server");
 							info.setTextFill(Color.RED);
-							stage.getScene().getRoot().setOnMouseClicked(new EventHandler<MouseEvent>() {
-								@Override
-								public void handle(MouseEvent event) {
-									stage.hide();
-									setLoginStage();
-									setLoginValues(connection.server, connection.port, connection.nick, connection.password);
-									stage.show();
-								}
-							});
-						}
+							
+								stage.getScene().getRoot().setOnMouseClicked(new EventHandler<MouseEvent>() {
+									@Override
+									public void handle(MouseEvent event) {
+										if(!(stage.getScene().getRoot() instanceof VBox)){
+											stage.hide();
+											setLoginStage();
+											setLoginValues(connection.server, connection.port, connection.nick, connection.password);
+											stage.show();
+										}
+									}
+								});
+							}
+						
 						frozen = true;
 					}
 				}

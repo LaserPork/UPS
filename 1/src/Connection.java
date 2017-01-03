@@ -52,6 +52,7 @@ class Connection extends Thread{
 			System.out.println("Disconnected");
 			disconnect();
 		}
+		disconnect();
 	}
 	
 	public void recieve(String mess){
@@ -89,15 +90,24 @@ class Connection extends Thread{
 	}
 	
 	public void disconnect(){
-		try {
-			as.disconnect();
-			in.close();
-			out.close();
-			socket.close();
-		} catch (Exception e) {
-			e.printStackTrace();
+		if(socket != null){
+			try {
+				as.disconnect();
+				in.close();
+				out.close();
+				socket.close();
+				tpRefresher.stopRefreshing();
+				for (int i = 0; i < checkers.size(); i++) {
+					removeChecker(checkers.get(i).getResponse());
+				}
+				out = null;
+				in = null;
+				socket = null;
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
 		}
-		
 	}
 	
 	public void removeChecker(String typ){
@@ -105,72 +115,96 @@ class Connection extends Thread{
 			if(checkers.get(i).getResponse().equals(typ)){
 				checkers.get(i).interrupt();
 				checkers.remove(i);
+				i--;
 			}
 		}
 	}
 	
 	public void login(String nick, String password){
-		System.out.println("Client sends:	4~login~"+nick+"~"+password);
-		out.println("4~login~"+nick+"~"+password);
-		checkers.add(new Checker("4~login~"+nick+"~"+password, "login",this));
+		if(socket != null){
+			System.out.println("Client sends:	4~login~"+nick+"~"+password);
+			checkers.add(new Checker("4~login~"+nick+"~"+password, "login",this));
+			out.println("4~login~"+nick+"~"+password);
+		}
 	}
 	
 	public void askTables(){
-		System.out.println("Client sends:	3~tables~count");
-		out.println("3~tables~count");
-		checkers.add(new Checker("3~tables~count", "tables",this));
+		if(socket != null){
+			System.out.println("Client sends:	3~tables~count");
+			checkers.add(new Checker("3~tables~count", "tables",this));
+			out.println("3~tables~count");
+		}
 	}
 	
 	public void askTable(int id){
-		System.out.println("Client sends:	3~table~"+id);
-		out.println("3~table~"+id);
-		checkers.add(new Checker("3~table~"+id, "table",this));
+		if(socket != null){
+			System.out.println("Client sends:	3~table~"+id);
+			out.println("3~table~"+id);
+			//checkers.add(new Checker("3~table~"+id, "table",this));
+		}
 	}
 	
 	public void join(int id){
-		System.out.println("Client sends:	3~join~"+id);
-		out.println("3~join~"+id);
-		checkers.add(new Checker("3~join~"+id, "join",this));
+		if(socket != null){
+			System.out.println("Client sends:	3~join~"+id);
+			checkers.add(new Checker("3~join~"+id, "join",this));
+			out.println("3~join~"+id);
+		}
 	}
 	
 	public void logout(){
-		System.out.println("Client sends:	2~logout");
-		out.println("2~logout");
-		checkers.add(new Checker("2~logout", "logout",this));
+		if(socket != null){
+			System.out.println("Client sends:	2~logout");
+			checkers.add(new Checker("2~logout", "logout",this));
+			out.println("2~logout");
+		}
 	}
 	
 	public void drawCard(){
-		System.out.println("Client sends:	2~draw");
-		out.println("2~draw");
+		if(socket != null){
+			System.out.println("Client sends:	2~draw");
+			out.println("2~draw");
+		}
 	}
 	
 	public void askPlayers(){
-		System.out.println("Client sends:	3~players~count");
-		out.println("3~players~count");
-		checkers.add(new Checker("3~players~count", "players",this));
+		if(socket != null){
+			System.out.println("Client sends:	3~players~count");
+			checkers.add(new Checker("3~players~count", "players",this));
+			out.println("3~players~count");
+		}
 	}
 	
 	public void announceEnough(){
-		System.out.println("Client sends:	2~enough");
-		out.println("2~enough");
-		checkers.add(new Checker("2~enough", "enough",this));
+		if(socket != null){
+			System.out.println("Client sends:	2~enough");
+			checkers.add(new Checker("2~enough", "enough",this));
+			out.println("2~enough");
+		}
 	}
 	
 	public void returnBack(){
-		System.out.println("Client sends:	2~return");
-		out.println("2~return");
-		checkers.add(new Checker("2~return", "return",this));
+		if(socket != null){
+			System.out.println("Client sends:	2~return");
+			checkers.add(new Checker("2~return", "return",this));
+			out.println("2~return");
+		}
 	}
 	
 	public void checkCards(){
-		System.out.println("Client sends:	2~checkCards");
-		out.println("2~checkCards");
-		checkers.add(new Checker("2~checkCards", "checkCards",this));
+		if(socket != null){
+			System.out.println("Client sends:	2~checkCards");
+			checkers.add(new Checker("2~checkCards", "checkCards",this));
+			out.println("2~checkCards");
+		}
 	}
 	
 	public void checkPlayers(){
-		System.out.println("Client sends:	2~checkPlayers");
-		out.println("2~checkPlayers");
-		checkers.add(new Checker("2~checkPlayers", "checkPlayers",this));
+		if(socket != null){
+			System.out.println("Client sends:	2~checkPlayers");
+			checkers.add(new Checker("2~checkPlayers", "checkPlayers",this));
+			out.println("2~checkPlayers");
+			
+		}
 	}
 }

@@ -20,7 +20,7 @@ struct user{
 
 struct user* createUser(char *name, char *password, struct client* Client);
 
-void resetUser(struct user* User);
+int resetUser(struct user* User);
 
 void userEnough(struct user* User);
 

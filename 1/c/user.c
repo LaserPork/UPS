@@ -19,17 +19,21 @@ struct user* createUser(char *name, char *password, struct client* Client){
     return User;
 }
 
-void resetUser(struct user* User){
+int resetUser(struct user* User){
+    int kicked = 0;
     dropUserHand(User);
     User->hasEnough = 0;
     if(User->leaving){
-        kickGameUser(User->Client->currentlyPlaying, User);
+        kickGameUser(User->game, User);
+        kicked = 1;
     }else {
         User->active = 1;
     }
     if(User->logged == 0){
-        kickGameUser(User->Client->currentlyPlaying, User);
+        kickGameUser(User->game, User);
+        kicked = 1;
     }
+    return kicked;
 }
 
 void userEnough(struct user* User){

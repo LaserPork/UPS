@@ -44,6 +44,7 @@ public class Table extends StackPane{
 	private Map<Node,RotateTransition> animations = new HashMap<Node,RotateTransition>();
 	private Group info = new Group();
 	AppStage as;
+	private boolean waiting = false;
 	
 	public Table(AppStage as, Connection connection,Map<String, Callback<String, Object>> callbacks){
 		super();
@@ -53,6 +54,7 @@ public class Table extends StackPane{
 		callbacks.clear();
 		initCallbacks();
 		connection.askPlayers();
+		connection.checkCards();
 		this.as = as;
 	}
 	
@@ -84,6 +86,7 @@ public class Table extends StackPane{
 							new Runnable() {
 								@Override
 								public void run() {
+									unwaiting();
 									drawCard(Integer.parseInt(ar[3]));
 								}
 							}
@@ -94,6 +97,7 @@ public class Table extends StackPane{
 								new Runnable() {
 									@Override
 									public void run() {
+										unwaiting();
 										enough();
 									}
 								}
@@ -104,7 +108,18 @@ public class Table extends StackPane{
 								new Runnable() {
 									@Override
 									public void run() {
+										unwaiting();
 										fold();
+									}
+								}
+						);
+					break;
+					case "waiting":
+						Platform.runLater(
+								new Runnable() {
+									@Override
+									public void run() {
+										waiting();
 									}
 								}
 						);
@@ -294,6 +309,23 @@ public class Table extends StackPane{
 								}
 						);
 						
+				return null;
+			}
+		});
+		
+		callbacks.put("playerCameBack", new Callback<String, Object>() {
+			public Object call(String mess) {
+				Platform.runLater(
+						new Runnable() {
+							@Override
+							public void run() {
+								String[] ar = mess.split("~");
+								String nick = ar[2];
+								resetPlayer(nick);
+							}
+						}
+				);
+				
 				return null;
 			}
 		});
@@ -635,8 +667,12 @@ public class Table extends StackPane{
 	
 	public void playerFolds(String nick){
 		Group hand = getPlayer(nick);
+		if(hand != null){
 		hand.setOpacity(0.2);
 		stopRotationAnimation(hand);
+		}else{
+			connection.askPlayers();
+		}
 	}
 	
 	public void fold(){
@@ -657,6 +693,16 @@ public class Table extends StackPane{
 		this.hand.setOpacity(1);
 	}
 	
+	public void resetPlayer(String nick){
+		Group hand = getPlayer(nick);
+		if(hand != null){
+			createRotationAnimation(hand);
+			hand.setOpacity(1);
+		}else{
+			connection.askPlayers();
+		}
+	}
+	
 	public void createRotationAnimation(Group hand){
 		for (int i = 0; i < hand.getChildren().size(); i++) {
 			if(animations.get(hand.getChildren().get(i))==null){
@@ -675,11 +721,15 @@ public class Table extends StackPane{
 	
 	public void stopRotationAnimation(Group hand){
 		if(!animations.isEmpty()){
-			for (int i = 0; i < hand.getChildren().size(); i++) {
-				RotateTransition rt = animations.get(hand.getChildren().get(i));
-				if(rt!=null){
-					rt.stop();
-					hand.getChildren().get(i).setRotate(0);
+			if(hand != null){
+				if(!hand.getChildren().isEmpty()){
+					for (int i = 0; i < hand.getChildren().size(); i++) {
+						RotateTransition rt = animations.get(hand.getChildren().get(i));
+						if(rt!=null){
+							rt.stop();
+							hand.getChildren().get(i).setRotate(0);
+						}
+					}
 				}
 			}
 		}
@@ -701,64 +751,70 @@ public class Table extends StackPane{
 	}
 	
 	public void win(){
-		info.getChildren().clear();
-		Text t = new Text("Win");
-		t.setFont(new Font(200));
-		t.setFill(Color.GOLD);
-		t.setStroke(Color.YELLOW);
-		t.setStrokeWidth(10);
-		t.setTranslateX(640-t.getLayoutBounds().getWidth()/2);
-		t.setTranslateY(360+100/2);
-		info.getChildren().add(t);
-	//	label.setVisible(false);
-		FadeTransition fd = new FadeTransition(Duration.millis(200), t);
-	    fd.setFromValue(0);
-	    fd.setToValue(1);
-	    fd.setCycleCount(Timeline.INDEFINITE);
-	    fd.setAutoReverse(true);
-	/*    fd.setInterpolator(new Interpolator() {
-			
-			@Override
-			protected double curve(double t) {
+		if(waiting == false){
+			info.getChildren().clear();
+			Text t = new Text("Win");
+			t.setFont(new Font(200));
+			t.setFill(Color.GOLD);
+			t.setStroke(Color.YELLOW);
+			t.setStrokeWidth(10);
+			t.setTranslateX(640-t.getLayoutBounds().getWidth()/2);
+			t.setTranslateY(360+100/2);
+			info.getChildren().add(t);
+		//	label.setVisible(false);
+			FadeTransition fd = new FadeTransition(Duration.millis(200), t);
+		    fd.setFromValue(0);
+		    fd.setToValue(1);
+		    fd.setCycleCount(Timeline.INDEFINITE);
+		    fd.setAutoReverse(true);
+		/*    fd.setInterpolator(new Interpolator() {
 				
-				return t<0.5?0:1;
-			}
-		});*/
-	    fd.play();
+				@Override
+				protected double curve(double t) {
+					
+					return t<0.5?0:1;
+				}
+			});*/
+		    fd.play();
+		}
 	}
 	
 	public void draw(){
-		info.getChildren().clear();
-		Text t = new Text("Draw");
-		t.setFont(new Font(100));
-		t.setFill(Color.GREEN);
-		t.setStroke(Color.BLACK);
-		t.setTranslateX(640-t.getLayoutBounds().getWidth()/2);
-		t.setTranslateY(360+100/2);
-		info.getChildren().add(t);
-	//	label.setVisible(false);
-		ScaleTransition st = new ScaleTransition(Duration.millis(5000), t);
-	    st.setByX(1.05f);
-	    
-	    st.setByY(1.05f);
-	    st.play();
+		if(waiting == false){
+			info.getChildren().clear();
+			Text t = new Text("Draw");
+			t.setFont(new Font(100));
+			t.setFill(Color.GREEN);
+			t.setStroke(Color.BLACK);
+			t.setTranslateX(640-t.getLayoutBounds().getWidth()/2);
+			t.setTranslateY(360+100/2);
+			info.getChildren().add(t);
+		//	label.setVisible(false);
+			ScaleTransition st = new ScaleTransition(Duration.millis(5000), t);
+		    st.setByX(1.05f);
+		    
+		    st.setByY(1.05f);
+		    st.play();
+		}
 	}
 	
 	public void lose(){
-		info.getChildren().clear();
-		Text t = new Text("Lost");
-		t.setFont(new Font(100));
-		t.setFill(Color.RED);
-		t.setStroke(Color.BLACK);
-		t.setTranslateX(640-t.getLayoutBounds().getWidth()/2);
-		t.setTranslateY(360+100/2);
-		info.getChildren().add(t);
-	//	label.setVisible(false);
-		ScaleTransition st = new ScaleTransition(Duration.millis(5000), t);
-	    st.setByX(1.05f);
-	    
-	    st.setByY(1.05f);
-	    st.play();
+		if(waiting == false){
+			info.getChildren().clear();
+			Text t = new Text("Lost");
+			t.setFont(new Font(100));
+			t.setFill(Color.RED);
+			t.setStroke(Color.BLACK);
+			t.setTranslateX(640-t.getLayoutBounds().getWidth()/2);
+			t.setTranslateY(360+100/2);
+			info.getChildren().add(t);
+		//	label.setVisible(false);
+			ScaleTransition st = new ScaleTransition(Duration.millis(5000), t);
+		    st.setByX(1.05f);
+		    
+		    st.setByY(1.05f);
+		    st.play();
+		}
 	}
 	
 	public void updatePlayers(String[] nicks){
@@ -813,4 +869,17 @@ public class Table extends StackPane{
 		setEffect(null);
 		setOnMouseClicked(null);
 	}
+	
+	public void waiting(){
+		this.waiting = true;
+		((Group)((Group)getChildren().get(0)).getChildren().get(0)).getChildren().get(1).setOpacity(0.2);
+		((Group)((Group)getChildren().get(0)).getChildren().get(0)).getChildren().get(2).setOpacity(0.2);
+	}
+	
+	public void unwaiting(){
+		this.waiting = false;
+		((Group)((Group)getChildren().get(0)).getChildren().get(0)).getChildren().get(1).setOpacity(1);
+		((Group)((Group)getChildren().get(0)).getChildren().get(0)).getChildren().get(2).setOpacity(1);
+	}
+	
 }

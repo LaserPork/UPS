@@ -37,6 +37,8 @@ void notifyGameAboutEnough(struct game* Game, struct user* User);
 
 void notifyGameAboutLeave(struct game* Game, struct user* User);
 
+void notifyGameAboutComingBack(struct game* Game, struct user* User);
+
 void tryToEndGame(struct game* Game);
 
 void endGame(struct game* Game);
