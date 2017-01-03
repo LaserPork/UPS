@@ -103,6 +103,7 @@ int recieve(struct client* Client, char* mess){
     char* array[10];
     char buf_out[BUFFSIZE];
     int found = 1;
+    int corrupted = 0;
     memset(buf_out, 0, sizeof(buf_out));
     for (i = 0; i < 10; ++i) {
         array[i] = malloc(sizeof(char) * 20);
@@ -118,48 +119,50 @@ int recieve(struct client* Client, char* mess){
 
     if(size != atoi(array[0])){
         printf("Corrupted packet: %s\n", mess);
+        sendMessage(Client, "Corrupted packet");
+        corrupted = 1;
     }
 
+    if(!corrupted) {
+        type = array[1];
 
-    type = array[1];
-
-    if(strcmp(type,"login") == 0) {
-        strcpy(buf_out, login(Client, array[2], array[3]));
-    }else if(strcmp(type,"tables") == 0){
-        strcpy(buf_out, getTables(Client));
-    }else if(strcmp(type,"table") == 0){
-        strcpy(buf_out, getTablePlaying(Client, (int)strtol(array[2],(char **)NULL, 10)));
-    }else if(strcmp(type,"join") == 0){
-        strcpy(buf_out, join(Client, (int)strtol(array[2],(char **)NULL, 10)));
-    }else if(strcmp(type,"logout") == 0){
-        strcpy(buf_out, logout(Client));
-        sendMessage(Client, buf_out);
-        return 1;
-    }else if(strcmp(type,"players") == 0){
-        getPlayers(Client);
-        for(i = 0; i < Client->currentlyLogged->game->playingPos; i++){
-            notifyGameAboutDraw(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
-        }
-        for(i = 0; i < Client->currentlyLogged->game->playingPos; i++){
-            if(!Client->currentlyLogged->game->playing[i]->active){
-                notifyGameAboutLeave(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
+        if (strcmp(type, "login") == 0) {
+            strcpy(buf_out, login(Client, array[2], array[3]));
+        } else if (strcmp(type, "tables") == 0) {
+            strcpy(buf_out, getTables(Client));
+        } else if (strcmp(type, "table") == 0) {
+            strcpy(buf_out, getTablePlaying(Client, (int) strtol(array[2], (char **) NULL, 10)));
+        } else if (strcmp(type, "join") == 0) {
+            strcpy(buf_out, join(Client, (int) strtol(array[2], (char **) NULL, 10)));
+        } else if (strcmp(type, "logout") == 0) {
+            strcpy(buf_out, logout(Client));
+            sendMessage(Client, buf_out);
+            return 1;
+        } else if (strcmp(type, "players") == 0) {
+            getPlayers(Client);
+            for (i = 0; i < Client->currentlyLogged->game->playingPos; i++) {
+                notifyGameAboutDraw(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
             }
-            if(Client->currentlyLogged->game->playing[i]->hasEnough){
-                notifyGameAboutEnough(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
+            for (i = 0; i < Client->currentlyLogged->game->playingPos; i++) {
+                if (!Client->currentlyLogged->game->playing[i]->active) {
+                    notifyGameAboutLeave(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
+                }
+                if (Client->currentlyLogged->game->playing[i]->hasEnough) {
+                    notifyGameAboutEnough(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
+                }
             }
-        }
-        sendMessage(Client, "3~players~success\n");
-    }else if(strcmp(type,"draw") == 0){
-        drawCard(Client);
-    }else if(strcmp(type,"enough") == 0){
-        enough(Client);
-    }else if(strcmp(type,"return") == 0){
-        strcpy(buf_out, returnBack(Client));
-    }else if(strcmp(type,"checkCards") == 0){
-        checkCards(Client);
-    }else if(strcmp(type,"checkPlayers") == 0){
-        strcpy(buf_out, checkPlayers(Client));
-    }else{found = 0;}
+            sendMessage(Client, "3~players~success\n");
+        } else if (strcmp(type, "draw") == 0) {
+            drawCard(Client);
+        } else if (strcmp(type, "enough") == 0) {
+            enough(Client);
+        } else if (strcmp(type, "return") == 0) {
+            strcpy(buf_out, returnBack(Client));
+        } else if (strcmp(type, "checkCards") == 0) {
+            checkCards(Client);
+        } else if (strcmp(type, "checkPlayers") == 0) {
+            strcpy(buf_out, checkPlayers(Client));
+        } else { found = 0; }
         /*
 
         case "players": getPlayers();
@@ -180,13 +183,13 @@ int recieve(struct client* Client, char* mess){
         }
     }
         */
-    freeArray(array, 10);
-    if(found){
-        if(sendMessage(Client, buf_out)){
-            return 1;
+        freeArray(array, 10);
+        if (found) {
+            if (sendMessage(Client, buf_out)) {
+                return 1;
+            }
         }
     }
-
     return 0;
 
 }

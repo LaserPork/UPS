@@ -418,6 +418,7 @@ public class AppStage{
 		
 	}
 	
+	@SuppressWarnings("unchecked")
 	public void setLoginValues(String server, int port, String nick, String pass){
 		((TextField)
 				((HBox)

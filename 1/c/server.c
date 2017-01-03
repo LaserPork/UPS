@@ -26,18 +26,17 @@ int runServer(struct server *Server){
     int sockfd, c_sockfd;
     struct sockaddr_in my_addr, rem_addr;
     int rem_addr_length;
-    struct timeval tv;
     struct client* Client;
+    int optval;
 
     if ((sockfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
         perror("Socket nelze otevrit");
         return 1;
     }
 
-    tv.tv_sec = 3;
-    tv.tv_usec = 0;
-    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &tv,
-               sizeof(tv));
+    optval = 1;
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval,
+               sizeof(optval));
 
     memset(&my_addr, 0,sizeof(my_addr));
     my_addr.sin_family = AF_INET;
