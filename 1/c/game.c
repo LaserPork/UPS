@@ -19,7 +19,7 @@ void runGame(struct game* Game){
 void* timer(void * voidGame){
     struct game* Game = (struct game*)voidGame;
     int i;
-    sleep(10);
+    sleep(20);
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
     for (i = 0; i < Game->playingPos; ++i) {
         if(Game->playing[i]->Client != NULL) {
