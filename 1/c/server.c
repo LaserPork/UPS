@@ -25,7 +25,7 @@ struct server* createServer(int port, int numberOfTables){
 int runServer(struct server *Server){
     int sockfd, c_sockfd;
     struct sockaddr_in my_addr, rem_addr;
-    int rem_addr_length;
+    socklen_t rem_addr_length;
     struct client* Client;
     int optval;
 

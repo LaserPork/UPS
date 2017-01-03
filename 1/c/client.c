@@ -119,7 +119,7 @@ int recieve(struct client* Client, char* mess){
 
     if(size != atoi(array[0])){
         printf("Corrupted packet: %s\n", mess);
-        sendMessage(Client, "Corrupted packet");
+        sendMessage(Client, "Corrupted packet\n");
         corrupted = 1;
     }
 
