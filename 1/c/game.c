@@ -231,7 +231,7 @@ void tryToEndGame(struct game* Game){
     int i;
     if(Game != NULL) {
         for (i = 0; i < Game->playingPos; ++i) {
-            if (!isUserOver(Game->playing[i]) && !Game->playing[i]->hasEnough) {
+            if (!isUserOver(Game->playing[i]) && !Game->playing[i]->hasEnough && Game->playing[i]->active) {
                 isEndable = 0;
             }
         }

@@ -15,6 +15,8 @@ struct client{
     pthread_t tid;
     int running;
     int shouldDie;
+    int recievedMessages;
+    int closable;
     pthread_t checkerTid;
     struct server* Server;
     struct user* currentlyLogged;

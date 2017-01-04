@@ -62,8 +62,9 @@ int runServer(struct server *Server){
         }
 
         Client = createClient(Server, c_sockfd);
+        /*
         addClient(Server->threads, Client);
-
+        */
     }
     return 0;
 

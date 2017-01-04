@@ -19,12 +19,12 @@ struct client* createClient(struct server* Server, int socket){
     Client->Server = Server;
     Client->socket = socket;
     Client->shouldDie = 0;
+    Client->recievedMessages = 0;
+    Client->closable = 2;
     pthread_create(&Client->tid, NULL, runClient, Client);
-
     pthread_detach(Client->tid);
 
     pthread_create(&Client->checkerTid, NULL, runChecker, Client);
-
     pthread_detach(Client->checkerTid);
 
     return Client;
@@ -63,9 +63,12 @@ void* runClient(void * voidClient){
         Client->currentlyLogged->Client = NULL;
     }
     printf("Klient %p ukoncil prubeh\n", (void *)&Client->tid);
-    close(c_sockfd);
 
-    free(Client);
+    close(c_sockfd);
+    Client->closable--;
+    if(!Client->closable){
+        free(Client);
+    }
     return NULL;
 }
 
@@ -76,7 +79,6 @@ void* runChecker(void * voidClient){
     Client->shouldDie = 1;
     for (i = 0; i < 10; ++i) {
         sleep(1);
-        if(Client != NULL) {
             if(Client->running) {
                 if (!Client->shouldDie) {
                     i = 0;
@@ -85,13 +87,13 @@ void* runChecker(void * voidClient){
             }else{
                 break;
             }
-        }else{
-            break;
-        }
     }
     logout(Client);
-    Client->running=0;
-
+    Client->running = 0;
+    Client->closable--;
+    if(!Client->closable){
+        free(Client);
+    }
     return NULL;
 }
 
@@ -103,7 +105,7 @@ int recieve(struct client* Client, char* mess){
     char* array[10];
     char buf_out[BUFFSIZE];
     int found = 1;
-    int corrupted = 0;
+    Client->recievedMessages++;
     memset(buf_out, 0, sizeof(buf_out));
     for (i = 0; i < 10; ++i) {
         array[i] = malloc(sizeof(char) * 20);
@@ -118,13 +120,18 @@ int recieve(struct client* Client, char* mess){
     }
 
     if(size != atoi(array[0])){
-        printf("Corrupted packet: %s\n", mess);
-        sendMessage(Client, "Corrupted packet\n");
-        corrupted = 1;
+        sendMessage(Client, "2~corruptedPacket\n");
+        if(Client->recievedMessages == 1){
+            return 1;
+        }else{
+            return 0;
+        }
     }
 
-    if(!corrupted) {
         type = array[1];
+    if(Client->recievedMessages == 1 && strcmp(type, "login")){
+        return  1;
+    }
 
         if (strcmp(type, "login") == 0) {
             strcpy(buf_out, login(Client, array[2], array[3]));
@@ -189,7 +196,7 @@ int recieve(struct client* Client, char* mess){
                 return 1;
             }
         }
-    }
+
     return 0;
 
 }

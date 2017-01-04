@@ -49,9 +49,10 @@ class Connection extends Thread{
 				recieve(line);
 			}
 		} catch (Exception e) {
-			System.out.println("Disconnected");
+			System.out.println("Read exception");
 			disconnect();
 		}
+		System.out.println("Stream closed");
 		disconnect();
 	}
 	

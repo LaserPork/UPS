@@ -29,6 +29,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import javafx.util.StringConverter;
 
 
 public class AppStage{
@@ -252,11 +253,15 @@ public class AppStage{
 		TextField stf = new TextField("localhost");
 		stf.setPrefSize(150, 30);
 		Spinner<Integer> ruleta = new Spinner<Integer>();
-		SpinnerValueFactory<Integer> svf = new SpinnerValueFactory.IntegerSpinnerValueFactory(1024, 45000);
+		SpinnerValueFactory<Integer> svf = new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 45000);
 		svf.setValue(1234);
 		ruleta.setValueFactory(svf);
 		ruleta.setEditable(true);
 		ruleta.setPrefSize(80, 30);
+		ruleta.focusedProperty().addListener((s, ov, nv) -> {
+		    if (nv) return;
+		    commitEditorText(ruleta);
+		});
 		HBox server = new HBox(st,stf,ruleta);
 		server.setAlignment(Pos.CENTER);
 		
@@ -281,6 +286,21 @@ public class AppStage{
 		return vb;
 	}
 	
+	private <T> void commitEditorText(Spinner<T> spinner) {
+	    if (!spinner.isEditable()) return;
+	    String text = spinner.getEditor().getText();
+	    SpinnerValueFactory<T> valueFactory = spinner.getValueFactory();
+	    if (valueFactory != null) {
+	        StringConverter<T> converter = valueFactory.getConverter();
+	        if (converter != null) {
+	            T value = converter.fromString(text);
+	            valueFactory.setValue(value);
+	        }
+	    }
+	}
+
+	
+	
 	public Pane initControls(){
 		Pane vb = initGrid();
 		
@@ -299,11 +319,12 @@ public class AppStage{
 		control.setPadding(new Insets(10));
 		AppStage as = this;
 		btloggin.setOnAction(new EventHandler<ActionEvent>(){
+			@SuppressWarnings("unchecked")
 			@Override
 			public void handle(ActionEvent arg0) {
 				
 					String server = ((TextField)((HBox)vb.getChildren().get(0)).getChildren().get(1)).getText();
-					int port = ((Spinner<Integer>)((HBox)vb.getChildren().get(0)).getChildren().get(2)).getValue();
+					int port = ((Spinner<Integer>)((HBox)vb.getChildren().get(0)).getChildren().get(2)).getValueFactory().getValue();
 					String nick = ((TextField)((HBox)vb.getChildren().get(1)).getChildren().get(1)).getText();
 					String pass = ((PasswordField)((HBox)vb.getChildren().get(2)).getChildren().get(1)).getText();
 					connection = new Connection(as, callbacks, server, port, nick, pass);
@@ -348,6 +369,7 @@ public class AppStage{
 		return bp;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public Node initTablePicker(){
 		tables.getColumns().clear();
 		TableColumn<TableViewCell, String> tableName = new TableColumn<TableViewCell, String> ("Table name");

@@ -1,8 +1,7 @@
-cmake_minimum_required(VERSION 3.6)
 project(1)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthreads")
-set(CMAKE_C_FLAGS "-ansi -pedantic -Wall -Wextra -pthreads")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -pthread")
+set(CMAKE_C_FLAGS "-ansi -pedantic -Wall -Wextra -pthread")
 
 set(SOURCE_FILES
         c/main.c
