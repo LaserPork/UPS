@@ -11,6 +11,7 @@ struct user{
     int hand[32];
     int handPos;
     int active;
+    int justCame;
     int leaving;
     struct client* Client;
 

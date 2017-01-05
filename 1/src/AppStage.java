@@ -491,7 +491,8 @@ public class AppStage{
 						if(stage.getScene().getRoot() instanceof Table){
 							((Table)stage.getScene().getRoot()).disconnect();
 						}else{
-							if(!info.getText().equals("Account is currently logged")){
+							if(!info.getText().equals("Account is currently logged") && 
+								!info.getText().equals("Account already exists, but wrong password")){
 								info.setText("Disconnected from server");
 								info.setTextFill(Color.RED);
 								stage.getScene().getRoot().setOnMouseClicked(new EventHandler<MouseEvent>() {
@@ -524,7 +525,7 @@ public class AppStage{
 						if(stage.getScene().getRoot() instanceof Table){
 							((Table)stage.getScene().getRoot()).freeze();
 						}else{
-							info.setText("Cannot get response from server");
+							info.setText("Waiting for response from server");
 							info.setTextFill(Color.RED);
 							
 								stage.getScene().getRoot().setOnMouseClicked(new EventHandler<MouseEvent>() {
@@ -557,7 +558,7 @@ public class AppStage{
 								if(stage.getScene().getRoot() instanceof Table){
 									((Table)stage.getScene().getRoot()).unfreeze();
 								}else{
-									info.setText("Connection reestablished");
+									info.setText("Connection established");
 									info.setTextFill(Color.GREEN);
 									stage.getScene().getRoot().setOnMouseDragged(null);
 								}

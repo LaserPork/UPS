@@ -19,7 +19,7 @@ void runGame(struct game* Game){
 void* timer(void * voidGame){
     struct game* Game = (struct game*)voidGame;
     int i;
-    sleep(20);
+    sleep(120);
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
     for (i = 0; i < Game->playingPos; ++i) {
         if(Game->playing[i]->Client != NULL) {
@@ -103,8 +103,10 @@ void joinGameUser(struct game* Game, struct user* User){
         for (i = 0; i < Game->playingPos; ++i) {
             if (strncmp(Game->playing[i]->name, User->name, 19) == 0) {
                 found = 1;
-                User->active = 1;
-                notifyGameAboutComingBack(Game, User);
+                if(User->justCame == 0) {
+                    User->active = 1;
+                    notifyGameAboutComingBack(Game, User);
+                }
                 break;
             }
         }
@@ -234,7 +236,9 @@ void tryToEndGame(struct game* Game){
             if (!isUserOver(Game->playing[i]) && !Game->playing[i]->hasEnough && Game->playing[i]->active) {
                 isEndable = 0;
             }
+
         }
+
         if (isEndable) {
             endGame(Game);
         }
@@ -281,11 +285,19 @@ void endGame(struct game* Game){
 
 void notifyGameAboutWin(struct game* Game, char* winners){
     int i;
+    int allLeft = 1;
     if(Game != NULL && winners != NULL) {
         for (i = 0; i < Game->playingPos; i++) {
             sendMessage(Game->playing[i]->Client, winners);
         }
-        sleep(3);
+        for (i = 0; i < Game->playingPos; i++) {
+            if(Game->playing[i]->active){
+                allLeft = 0;
+            }
+        }
+        if(allLeft == 0) {
+            sleep(3);
+        }
         resetGame(Game);
     }
 }

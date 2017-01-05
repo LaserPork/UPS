@@ -16,6 +16,7 @@ struct user* createUser(char *name, char *password, struct client* Client){
     User->hasEnough = 0;
     User->active = 0;
     User->leaving = 0;
+    User->justCame = 1;
     return User;
 }
 
@@ -23,6 +24,7 @@ int resetUser(struct user* User){
     int kicked = 0;
     dropUserHand(User);
     User->hasEnough = 0;
+    User->justCame = 0;
     if(User->leaving){
         kickGameUser(User->game, User);
         kicked = 1;

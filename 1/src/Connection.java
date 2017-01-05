@@ -164,6 +164,7 @@ class Connection extends Thread{
 	public void drawCard(){
 		if(socket != null){
 			System.out.println("Client sends:	2~draw");
+			checkers.add(new Checker("2~draw", "draw",this));
 			out.println("2~draw");
 		}
 	}

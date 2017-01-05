@@ -19,6 +19,7 @@ struct server* createServer(int port, int numberOfTables){
 
     }
     Server->port = port;
+    Server->log = fopen("ServerLog.txt", "w");
     return Server;
 }
 
@@ -54,11 +55,14 @@ int runServer(struct server *Server){
 
     while (1) {
         printf("Server is listening for connections\n");
+        fprintf(Server->log, "Server is listening for connections\n");
+        fflush(Server->log);
         rem_addr_length=sizeof(rem_addr);
         if ((c_sockfd = accept(sockfd, (struct sockaddr *)&rem_addr, &rem_addr_length)) == -1) {
             perror("Chyba pri accept\n");
             printf("Chyba");
-            close(sockfd); return 1;
+            fprintf(Server->log,"Chyba");
+                    close(sockfd); return 1;
         }
 
         Client = createClient(Server, c_sockfd);

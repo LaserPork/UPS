@@ -50,11 +50,9 @@ public class Table extends StackPane{
 		super();
 		this.connection = connection;
 		this.callbacks = callbacks;
-		initTableView();
 		callbacks.clear();
 		initCallbacks();
-		connection.askPlayers();
-		connection.checkCards();
+		initTableView();
 		this.as = as;
 	}
 	
@@ -151,18 +149,30 @@ public class Table extends StackPane{
 		
 		callbacks.put("enough", new Callback<String, Object>() {
 			public Object call(String mess) {
-				Platform.runLater(
-						new Runnable() {
-							@Override
-							public void run() {
-								String[] ar = mess.split("~");
-								String mess = ar[2];
-								if(mess.equals("success")){
-									enough();
+				String[] ar = mess.split("~");
+				String result = ar[2];
+				switch (result) {
+					case "success":
+						Platform.runLater(
+							new Runnable() {
+								@Override
+								public void run() {
+									if(mess.equals("success")){
+										enough();
+									}
 								}
 							}
-						}
-				);
+						);
+					case "areOver":
+						Platform.runLater(
+							new Runnable() {
+								@Override
+								public void run() {
+									fold();
+								}
+							}
+						);
+				}
 				return null;
 			}
 		});
@@ -290,6 +300,9 @@ public class Table extends StackPane{
 									cards[i] = ar[i+2];							
 								}
 								updateCards(cards);
+								if(cards.length == 0){
+									connection.drawCard();
+								}
 							}
 						}
 				);
@@ -691,6 +704,7 @@ public class Table extends StackPane{
 		}
 		this.hand.getChildren().clear();
 		this.hand.setOpacity(1);
+		connection.checkCards();
 	}
 	
 	public void resetPlayer(String nick){
@@ -855,6 +869,7 @@ public class Table extends StackPane{
 		ColorAdjust ca = new ColorAdjust();
 		ca.setSaturation(-1);
 		setEffect(ca);
+		/*
 		setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override
 			public void handle(MouseEvent event) {
@@ -862,12 +877,15 @@ public class Table extends StackPane{
 				as.setLoginValues(connection.server, connection.port, connection.nick, connection.password);
 			}
 		});
+		*/
 	}
 	
 
 	public void unfreeze(){
 		setEffect(null);
+		/*
 		setOnMouseClicked(null);
+		*/
 	}
 	
 	public void waiting(){

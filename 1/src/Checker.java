@@ -21,19 +21,21 @@ public class Checker extends Thread{
 	}
 	
 	public void run(){
-		for (int i = 0; i < 4; i++) {
+		connection.as.freeze();
+		for (int i = 0; i < 8; i++) {
 			try {
-				Thread.sleep(4000);
+				Thread.sleep(2000);
 			} catch (InterruptedException e) {
 				//Message came
 				System.out.println(response+" interrupted");
+				connection.as.unfreeze();
 				return;
 			}
 			System.out.println("Checker sends:	"+sent);
 			out.println(sent);
 		}
 		connection.as.freeze();
-		System.out.println(response+" froze");
+		System.out.println(response+" frozen");
 		
 	}
 }

@@ -37,6 +37,7 @@ void* runClient(void * voidClient){
     int c_sockfd = Client->socket;
     Client->running = 1;
     printf("Server prijal klienta %p\n", (void *)&Client->tid);
+    fprintf(Client->Server->log,"Server prijal klienta %p\n", (void *)&Client->tid);
     while(Client->running) {
         memset(&buf, 0, sizeof(buf));
         if (read(c_sockfd, buf, BUFFSIZE) == -1) {
@@ -47,6 +48,7 @@ void* runClient(void * voidClient){
             p = strtok(buf, "\r\n");
             while (p != NULL && Client->running){
                 printf("%p Server gets: %s\n", (void *) &Client->tid, p);
+                fprintf(Client->Server->log,"%p Server gets: %s\n", (void *) &Client->tid, p);
                 if(recieve(Client, p)){
                     Client->running = 0;
                     break;
@@ -63,7 +65,7 @@ void* runClient(void * voidClient){
         Client->currentlyLogged->Client = NULL;
     }
     printf("Klient %p ukoncil prubeh\n", (void *)&Client->tid);
-
+    fprintf(Client->Server->log,"Klient %p ukoncil prubeh\n", (void *)&Client->tid);
     close(c_sockfd);
     Client->closable--;
     if(!Client->closable){
@@ -78,7 +80,7 @@ void* runChecker(void * voidClient){
 
     Client->shouldDie = 1;
     for (i = 0; i < 10; ++i) {
-        sleep(1);
+        sleep(6);
             if(Client->running) {
                 if (!Client->shouldDie) {
                     i = 0;
@@ -196,6 +198,10 @@ int recieve(struct client* Client, char* mess){
                 return 1;
             }
         }
+    if(Client->currentlyLogged != NULL){
+        tryToEndGame(Client->currentlyLogged->game);
+    }
+
 
     return 0;
 
@@ -204,13 +210,16 @@ int recieve(struct client* Client, char* mess){
 int sendMessage(struct client* Client, char* buf_out){
     int c_sockfd;
     if(Client != NULL){
-        c_sockfd = Client->socket;
-        if(strlen(buf_out)>0) {
-            printf("%p Server sends %s", (void *) &Client->tid, buf_out);
-        }
-        if (send(c_sockfd, buf_out, strlen(buf_out), 0) == -1) {
-        /*    perror("Chyba pri zapisu\n"); */
-            return 1;
+        if(Client->running) {
+            c_sockfd = Client->socket;
+            if (strlen(buf_out) > 0) {
+                printf("%p Server sends %s", (void *) &Client->tid, buf_out);
+                fprintf(Client->Server->log,"%p Server sends %s", (void *) &Client->tid, buf_out);
+            }
+            if (send(c_sockfd, buf_out, strlen(buf_out), 0) == -1) {
+                /*    perror("Chyba pri zapisu\n"); */
+                return 1;
+            }
         }
     }
     return 0;
@@ -226,6 +235,7 @@ char* login(struct client* Client, char* name, char* password){
                 if (strncmp(Client->Server->users->array[i]->name, name, 19) == 0) {
 
                     if (Client->Server->users->array[i]->logged) {
+                        sendMessage(Client, "3~login~alreadylogged\n");
                         strcpy(mess, "3~login~alreadylogged\n");
                         Client->running = 0;
                         return mess;
@@ -239,6 +249,7 @@ char* login(struct client* Client, char* name, char* password){
                         strcat(mess, "\n");
                         return mess;
                     }
+                    sendMessage(Client, "3~login~failpassword\n");
                     strcpy(mess, "3~login~failpassword\n");
                     Client->running = 0;
                     return mess;
@@ -253,6 +264,7 @@ char* login(struct client* Client, char* name, char* password){
         }
     }else{
         printf("Client was null.\n");
+        fprintf(Client->Server->log, "Client was null.\n");
     }
     strcat(mess, "\n");
     return mess;
@@ -267,6 +279,8 @@ char* getTables(struct client* Client){
             sprintf(num, "%d", Client->Server->numberOfTables);
             strcpy(mess, "3~tables~");
             strcat(mess, num);
+        }else{
+            sendMessage(Client, "2~invalidState\n");
         }
     }else{
         printf("Client was null.\n");
@@ -283,6 +297,8 @@ char* getTablePlaying(struct client* Client, int id){
             sprintf(num, "%d~%d", id, Client->Server->tables[id]->playingPos);
             strcpy(mess, "4~table~");
             strcat(mess, num);
+        }else{
+            sendMessage(Client, "2~invalidState\n");
         }
     }else{
         printf("Client was null.\n");
@@ -321,6 +337,8 @@ char* join(struct client* Client, int id){
             strcpy(mess, "4~join~");
             strcat(mess, idStr);
             strcat(mess, "~success\n");
+        }else{
+            sendMessage(Client, "2~invalidState\n");
         }
     }else{
         printf("Client was null.\n");
@@ -340,8 +358,11 @@ char* logout(struct client* Client){
             if(isGameFirstTurn(Client->currentlyLogged->game)){
                 resetGame(Client->currentlyLogged->game);
             }
+            strcpy(mess, "3~logout~success\n");
+        }else{
+            sendMessage(Client, "2~invalidState\n");
         }
-        strcpy(mess, "3~logout~success\n");
+
     }else{
         printf("Client was null.\n");
     }
@@ -358,8 +379,11 @@ char* returnBack(struct client* Client){
             if(isGameFirstTurn(Client->currentlyLogged->game)){
                 resetGame(Client->currentlyLogged->game);
             }
+            strcpy(mess, "3~return~success\n");
+        }else{
+            sendMessage(Client, "2~invalidState\n");
         }
-        strcpy(mess, "3~return~success\n");
+
     }else{
         printf("Client was null.\n");
     }
@@ -370,15 +394,22 @@ void getPlayers(struct client* Client){
     int i;
     char mess[50];
     if(Client != NULL) {
-        if(Client->currentlyLogged->game != NULL) {
-            for (i = 0; i < Client->currentlyLogged->game->playingPos; i++) {
-                if (strcmp(Client->currentlyLogged->game->playing[i]->name, Client->currentlyLogged->name)) {
-                    strcpy(mess, "3~playerJoined~");
-                    strcat(mess, Client->currentlyLogged->game->playing[i]->name);
-                    strcat(mess, "\n");
-                    sendMessage(Client, mess);
+        if(Client->currentlyLogged != NULL) {
+            if (Client->currentlyLogged->game != NULL) {
+                sendMessage(Client, "3~players~success\n");
+                for (i = 0; i < Client->currentlyLogged->game->playingPos; i++) {
+                    if (strcmp(Client->currentlyLogged->game->playing[i]->name, Client->currentlyLogged->name)) {
+                        strcpy(mess, "3~playerJoined~");
+                        strcat(mess, Client->currentlyLogged->game->playing[i]->name);
+                        strcat(mess, "\n");
+                        sendMessage(Client, mess);
+                    }
                 }
+            }else {
+                sendMessage(Client, "2~invalidState\n");
             }
+        }else {
+            sendMessage(Client, "2~invalidState\n");
         }
     }else{
         printf("Client was null.\n");
@@ -412,7 +443,7 @@ void drawCard(struct client* Client){
             }
             tryToEndGame(Client->currentlyLogged->game);
         } else {
-            sendMessage(Client, "3~draw~invalidOperation\n");
+            sendMessage(Client, "2~invalidState\n");
         }
     }else{
         printf("Client was null.\n");
@@ -430,6 +461,8 @@ void enough(struct client* Client){
                 sendMessage(Client, "3~enough~areOver\n");
             }
             tryToEndGame(Client->currentlyLogged->game);
+        }else{
+            sendMessage(Client, "2~invalidState\n");
         }
     }else{
         printf("Client was null.\n");
@@ -442,6 +475,8 @@ void fold(struct client* Client){
             if (isUserOver(Client->currentlyLogged)) {
                 notifyGameAboutEnough(Client->currentlyLogged->game, Client->currentlyLogged);
             }
+        }else{
+            sendMessage(Client, "2~invalidState\n");
         }
     }else{
         printf("Client was null.\n");
@@ -472,6 +507,8 @@ char* checkPlayers(struct client* Client){
                     strcat(mess, Game->playing[i]->name);
                 }
             }
+        }else{
+            sendMessage(Client, "2~invalidState\n");
         }
         strcat(mess, "\n");
     }else{
@@ -496,15 +533,18 @@ void checkCards(struct client* Client){
 
             }
 
+            strcat(mess, "\n");
+            sendMessage(Client, mess);
+            if(Client->currentlyLogged->hasEnough){
+                sendMessage(Client, "3~enough~success\n");
+            }
+            if(isUserOver(Client->currentlyLogged)){
+                sendMessage(Client, "3~draw~areOver\n");
+            }
+        }else{
+            sendMessage(Client, "2~invalidState\n");
         }
-        strcat(mess, "\n");
-        sendMessage(Client, mess);
-        if(Client->currentlyLogged->hasEnough){
-            sendMessage(Client, "3~enough~success\n");
-        }
-        if(isUserOver(Client->currentlyLogged)){
-            sendMessage(Client, "3~draw~areOver\n");
-        }
+
     }else{
         printf("Client was null.\n");
     }
