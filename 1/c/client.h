@@ -23,7 +23,7 @@ struct client{
 };
 
 
-struct client* createClient(struct server* Server, int socket);
+void createClient(struct server* Server, int socket);
 
 void* runClient(void * voidClient);
 

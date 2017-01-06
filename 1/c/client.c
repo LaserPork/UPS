@@ -12,7 +12,7 @@
 
 
 
-struct client* createClient(struct server* Server, int socket){
+void createClient(struct server* Server, int socket){
     struct client* Client;
     Client = malloc(sizeof(struct client));
     Client->currentlyLogged = NULL;
@@ -30,7 +30,6 @@ struct client* createClient(struct server* Server, int socket){
     }
     pthread_detach(Client->checkerTid);
 
-    return Client;
 }
 
 void* runClient(void * voidClient){
@@ -69,6 +68,7 @@ void* runClient(void * voidClient){
     }
     printf("Klient %p ukoncil prubeh\n", (void *)&Client->tid);
     fprintf(Client->Server->log,"Klient %p ukoncil prubeh\n", (void *)&Client->tid);
+    shutdown(Client->socket, SHUT_WR);
     close(Client->socket);
     pthread_cancel(Client->checkerTid);
     free(Client);
@@ -92,10 +92,12 @@ void* runChecker(void * voidClient){
             }
     }
     logout(Client);
-    close(Client->socket);
-    pthread_cancel(Client->tid);
+
     printf("Checker kills %p \n", (void *) &Client->tid);
     fprintf(Client->Server->log, "Checker kills %p \n", (void *) &Client->tid);
+    shutdown(Client->socket, SHUT_WR);
+    close(Client->socket);
+    pthread_cancel(Client->tid);
     free(Client);
     return NULL;
 }
