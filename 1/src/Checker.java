@@ -25,17 +25,17 @@ public class Checker extends Thread{
 		for (int i = 0; i < 8; i++) {
 			try {
 				Thread.sleep(2000);
-			} catch (InterruptedException e) {
+				System.out.println("Checker sends:	"+sent);
+				out.println(sent);
+			} catch (Exception e) {
 				//Message came
-				System.out.println(response+" interrupted");
 				connection.as.unfreeze();
 				return;
 			}
-			System.out.println("Checker sends:	"+sent);
-			out.println(sent);
+			
 		}
-		connection.as.freeze();
-		System.out.println(response+" frozen");
+		System.out.println("Response took too long, disconnecting");
+		connection.disconnect();
 		
 	}
 }

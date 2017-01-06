@@ -49,6 +49,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Callback;
+import sun.security.krb5.Realm;
 
 public class Main extends Application{
 
@@ -75,7 +76,6 @@ public class Main extends Application{
 		*/
 		AppStage as = new AppStage(stage);
 		as.setLoginStage();
-		as.initCallbacks();
 		stage.show();
 	}
 	

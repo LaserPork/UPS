@@ -44,6 +44,7 @@ public class AppStage{
 	
 	public AppStage(Stage stage){
 		this.stage = stage;
+		
 	}
 	
 	public TableView<TableViewCell> getTableView(){
@@ -88,11 +89,11 @@ public class AppStage{
 								new Runnable() {
 									@Override
 									public void run() {
+										setTableStage();
 										String name = ar[3];
 										connection.nick = name;
 										info.setTextFill(Paint.valueOf("blue"));
 										info.setText("New account registered");
-										setTableStage();
 									}
 								}
 						);
@@ -348,6 +349,7 @@ public class AppStage{
 		stage.setMinWidth(360);
 		stage.setHeight(300);
 		stage.setWidth(360);
+		initCallbacks();
 		stage.show();
 	}
 	
@@ -527,7 +529,7 @@ public class AppStage{
 						}else{
 							info.setText("Waiting for response from server");
 							info.setTextFill(Color.RED);
-							
+							/*
 								stage.getScene().getRoot().setOnMouseClicked(new EventHandler<MouseEvent>() {
 									@Override
 									public void handle(MouseEvent event) {
@@ -539,7 +541,9 @@ public class AppStage{
 										}
 									}
 								});
+								*/
 							}
+							
 						
 						frozen = true;
 					}

@@ -8,6 +8,8 @@ struct game* createGame(int id){
     Game->id = id;
     Game->playingPos = 0;
     Game->deckPos = 32;
+    pthread_mutex_init(&Game->mutex, NULL);
+    pthread_cond_init(&Game->cond, NULL);
     return Game;
 }
 
@@ -19,7 +21,14 @@ void runGame(struct game* Game){
 void* timer(void * voidGame){
     struct game* Game = (struct game*)voidGame;
     int i;
-    sleep(120);
+    /*
+    struct timespec ts;
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    ts.tv_sec = time(NULL) + 40;
+    pthread_cond_timedwait(&Game->cond, &Game->mutex, &ts);
+     */
+    sleep(40);
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
     for (i = 0; i < Game->playingPos; ++i) {
         if(Game->playing[i]->Client != NULL) {
@@ -66,6 +75,7 @@ int drawGameCard(struct game* Game){
     if(Game != NULL) {
         if (isGameFirstTurn(Game)) {
             resetGameDeck(Game);
+            pthread_cancel(Game->tid);
             runGame(Game);
         }
         if (Game->deckPos > 0) {
@@ -315,9 +325,9 @@ void resetGame(struct game* Game){
     int i;
     if(Game != NULL) {
         resetGameDeck(Game);
-        for (i = 0; i < Game->playingPos; i++) {
+        for (i = 0; i < Game->playingPos; ++i) {
             if(resetUser(Game->playing[i])){
-                i--;
+                i = 0;
             }
         }
         notifyGameAboutPlayers(Game);

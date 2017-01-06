@@ -10,7 +10,8 @@ struct game{
 	int deck[32];
 	int deckPos;
     pthread_t tid;
-
+	pthread_mutex_t mutex;
+	pthread_cond_t cond;
 };
 
 void runGame(struct game* Game);

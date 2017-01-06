@@ -98,21 +98,24 @@ class Connection extends Thread{
 				out.close();
 				socket.close();
 				tpRefresher.stopRefreshing();
-				for (int i = 0; i < checkers.size(); i++) {
-					removeChecker(checkers.get(i).getResponse());
-				}
+				removeAllCheckers();
 				out = null;
 				in = null;
 				socket = null;
 			} catch (Exception e) {
-				e.printStackTrace();
 			}
 			
 		}
 	}
 	
+	public void removeAllCheckers(){
+		while(checkers.size()!=0){
+			removeChecker(checkers.get(0).getResponse());
+		}
+	}
+	
 	public void removeChecker(String typ){
-		for (int i = 0; i < checkers.size(); i++) {
+		for (int i = 0; i < checkers.size(); ++i) {
 			if(checkers.get(i).getResponse().equals(typ)){
 				checkers.get(i).interrupt();
 				checkers.remove(i);
@@ -122,7 +125,7 @@ class Connection extends Thread{
 	}
 	
 	public void login(String nick, String password){
-		if(socket != null){
+		if(socket != null && out != null){
 			System.out.println("Client sends:	4~login~"+nick+"~"+password);
 			checkers.add(new Checker("4~login~"+nick+"~"+password, "login",this));
 			out.println("4~login~"+nick+"~"+password);
@@ -130,7 +133,7 @@ class Connection extends Thread{
 	}
 	
 	public void askTables(){
-		if(socket != null){
+		if(socket != null && out != null){
 			System.out.println("Client sends:	3~tables~count");
 			checkers.add(new Checker("3~tables~count", "tables",this));
 			out.println("3~tables~count");
@@ -138,15 +141,15 @@ class Connection extends Thread{
 	}
 	
 	public void askTable(int id){
-		if(socket != null){
+		if(socket != null && out != null){
 			System.out.println("Client sends:	3~table~"+id);
+			checkers.add(new Checker("3~table~"+id, "table",this));
 			out.println("3~table~"+id);
-			//checkers.add(new Checker("3~table~"+id, "table",this));
 		}
 	}
 	
 	public void join(int id){
-		if(socket != null){
+		if(socket != null && out != null){
 			System.out.println("Client sends:	3~join~"+id);
 			checkers.add(new Checker("3~join~"+id, "join",this));
 			out.println("3~join~"+id);
@@ -154,7 +157,7 @@ class Connection extends Thread{
 	}
 	
 	public void logout(){
-		if(socket != null){
+		if(socket != null && out != null){
 			System.out.println("Client sends:	2~logout");
 			checkers.add(new Checker("2~logout", "logout",this));
 			out.println("2~logout");
@@ -162,7 +165,7 @@ class Connection extends Thread{
 	}
 	
 	public void drawCard(){
-		if(socket != null){
+		if(socket != null && out != null){
 			System.out.println("Client sends:	2~draw");
 			checkers.add(new Checker("2~draw", "draw",this));
 			out.println("2~draw");
@@ -170,7 +173,7 @@ class Connection extends Thread{
 	}
 	
 	public void askPlayers(){
-		if(socket != null){
+		if(socket != null && out != null){
 			System.out.println("Client sends:	3~players~count");
 			checkers.add(new Checker("3~players~count", "players",this));
 			out.println("3~players~count");
@@ -178,7 +181,7 @@ class Connection extends Thread{
 	}
 	
 	public void announceEnough(){
-		if(socket != null){
+		if(socket != null && out != null){
 			System.out.println("Client sends:	2~enough");
 			checkers.add(new Checker("2~enough", "enough",this));
 			out.println("2~enough");
@@ -186,7 +189,7 @@ class Connection extends Thread{
 	}
 	
 	public void returnBack(){
-		if(socket != null){
+		if(socket != null && out != null){
 			System.out.println("Client sends:	2~return");
 			checkers.add(new Checker("2~return", "return",this));
 			out.println("2~return");
@@ -194,7 +197,7 @@ class Connection extends Thread{
 	}
 	
 	public void checkCards(){
-		if(socket != null){
+		if(socket != null && out != null){
 			System.out.println("Client sends:	2~checkCards");
 			checkers.add(new Checker("2~checkCards", "checkCards",this));
 			out.println("2~checkCards");
@@ -202,7 +205,7 @@ class Connection extends Thread{
 	}
 	
 	public void checkPlayers(){
-		if(socket != null){
+		if(socket != null && out != null){
 			System.out.println("Client sends:	2~checkPlayers");
 			checkers.add(new Checker("2~checkPlayers", "checkPlayers",this));
 			out.println("2~checkPlayers");

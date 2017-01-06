@@ -21,10 +21,13 @@ struct client* createClient(struct server* Server, int socket){
     Client->shouldDie = 0;
     Client->recievedMessages = 0;
     Client->closable = 2;
-    pthread_create(&Client->tid, NULL, runClient, Client);
+    if(pthread_create(&Client->tid, NULL, runClient, Client)){
+        pthread_cancel(Client->tid);
+    }
     pthread_detach(Client->tid);
-
-    pthread_create(&Client->checkerTid, NULL, runChecker, Client);
+    if(pthread_create(&Client->checkerTid, NULL, runChecker, Client)) {
+        pthread_cancel(Client->checkerTid);
+    }
     pthread_detach(Client->checkerTid);
 
     return Client;
@@ -66,11 +69,9 @@ void* runClient(void * voidClient){
     }
     printf("Klient %p ukoncil prubeh\n", (void *)&Client->tid);
     fprintf(Client->Server->log,"Klient %p ukoncil prubeh\n", (void *)&Client->tid);
-    close(c_sockfd);
-    Client->closable--;
-    if(!Client->closable){
-        free(Client);
-    }
+    close(Client->socket);
+    pthread_cancel(Client->checkerTid);
+    free(Client);
     return NULL;
 }
 
@@ -79,8 +80,8 @@ void* runChecker(void * voidClient){
     int i;
 
     Client->shouldDie = 1;
-    for (i = 0; i < 10; ++i) {
-        sleep(6);
+    for (i = 0; i < 5; ++i) {
+        sleep(3);
             if(Client->running) {
                 if (!Client->shouldDie) {
                     i = 0;
@@ -91,11 +92,11 @@ void* runChecker(void * voidClient){
             }
     }
     logout(Client);
-    Client->running = 0;
-    Client->closable--;
-    if(!Client->closable){
-        free(Client);
-    }
+    close(Client->socket);
+    pthread_cancel(Client->tid);
+    printf("Checker kills %p \n", (void *) &Client->tid);
+    fprintf(Client->Server->log, "Checker kills %p \n", (void *) &Client->tid);
+    free(Client);
     return NULL;
 }
 
@@ -198,10 +199,11 @@ int recieve(struct client* Client, char* mess){
                 return 1;
             }
         }
+    /*
     if(Client->currentlyLogged != NULL){
         tryToEndGame(Client->currentlyLogged->game);
     }
-
+*/
 
     return 0;
 

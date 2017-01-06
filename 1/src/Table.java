@@ -45,6 +45,7 @@ public class Table extends StackPane{
 	private Group info = new Group();
 	AppStage as;
 	private boolean waiting = false;
+	private boolean ending = false;
 	
 	public Table(AppStage as, Connection connection,Map<String, Callback<String, Object>> callbacks){
 		super();
@@ -225,6 +226,7 @@ public class Table extends StackPane{
 							@Override
 							public void run() {
 								String[] ar = mess.split("~");
+								ending = true;
 								if(ar.length == 2){
 									lose();
 								}else if(ar.length == 3){
@@ -259,6 +261,7 @@ public class Table extends StackPane{
 						new Runnable() {
 							@Override
 							public void run() {
+								connection.removeAllCheckers();
 								resetGame();
 							}
 						}
@@ -659,8 +662,11 @@ public class Table extends StackPane{
 	
 	public void playerDrawsCard(String nick, int cards){
 		Group hand = getPlayer(nick);
-		if(hand.getChildren() != null){
-			((Text)hand.getChildren().get(3)).setText(String.valueOf(cards));
+		if(hand != null){
+			if(hand.getChildren() != null){
+		
+				((Text)hand.getChildren().get(3)).setText(String.valueOf(cards));
+			}
 		}
 		
 	}
@@ -705,6 +711,7 @@ public class Table extends StackPane{
 		this.hand.getChildren().clear();
 		this.hand.setOpacity(1);
 		connection.checkCards();
+		ending = false;
 	}
 	
 	public void resetPlayer(String nick){
@@ -866,9 +873,13 @@ public class Table extends StackPane{
 	}
 	
 	public void freeze(){
-		ColorAdjust ca = new ColorAdjust();
-		ca.setSaturation(-1);
-		setEffect(ca);
+		if(!ending){
+			ColorAdjust ca = new ColorAdjust();
+			ca.setSaturation(-1);
+			setEffect(ca);
+		}else{
+			unfreeze();
+		}
 		/*
 		setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override

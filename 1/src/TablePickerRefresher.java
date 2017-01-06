@@ -14,10 +14,10 @@ public class TablePickerRefresher extends Thread{
 	public void run(){
 		while(running){
 			for (int i = 0; i < tables.getItems().size(); i++) {
-				if(connection.out != null){
-					connection.askTable(i);
-				}
 				try {
+					if(connection.out != null){
+						connection.askTable(i);
+					}
 					sleep(1000);
 				} catch (Exception e) {
 					return;

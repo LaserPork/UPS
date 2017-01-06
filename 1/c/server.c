@@ -27,7 +27,6 @@ int runServer(struct server *Server){
     int sockfd, c_sockfd;
     struct sockaddr_in my_addr, rem_addr;
     socklen_t rem_addr_length;
-    struct client* Client;
     int optval;
 
     if ((sockfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
@@ -65,7 +64,7 @@ int runServer(struct server *Server){
                     close(sockfd); return 1;
         }
 
-        Client = createClient(Server, c_sockfd);
+        createClient(Server, c_sockfd);
         /*
         addClient(Server->threads, Client);
         */
