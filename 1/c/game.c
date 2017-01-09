@@ -306,7 +306,7 @@ void notifyGameAboutWin(struct game* Game, char* winners){
             }
         }
         if(allLeft == 0) {
-            sleep(3);
+
         }
         resetGame(Game);
     }
@@ -322,13 +322,14 @@ void notifyGameAboutPlayers(struct game* Game){
 }
 
 void resetGame(struct game* Game){
-    int i;
+    int i = 0;
     if(Game != NULL) {
         resetGameDeck(Game);
-        for (i = 0; i < Game->playingPos; ++i) {
+        while(i < Game->playingPos){
             if(resetUser(Game->playing[i])){
                 i = 0;
             }
+            i++;
         }
         notifyGameAboutPlayers(Game);
         for (i = 0; i < Game->playingPos; i++) {

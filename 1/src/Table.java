@@ -3,7 +3,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javafx.animation.FadeTransition;
-import javafx.animation.Interpolator;
 import javafx.animation.RotateTransition;
 import javafx.animation.ScaleTransition;
 import javafx.animation.Timeline;
@@ -16,7 +15,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
 import javafx.scene.Node;
-import javafx.scene.control.Label;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.input.MouseEvent;
 
@@ -43,7 +41,7 @@ public class Table extends StackPane{
 	private ArrayList<Group> otherHands = new ArrayList<Group>();
 	private Map<Node,RotateTransition> animations = new HashMap<Node,RotateTransition>();
 	private Group info = new Group();
-	AppStage as;
+	private AppStage as;
 	private boolean waiting = false;
 	private boolean ending = false;
 	
@@ -186,7 +184,7 @@ public class Table extends StackPane{
 							public void run() {
 								String[] ar = mess.split("~");
 								String nick = ar[2];
-								if(!nick.equals(connection.nick)){									
+								if(!nick.equals(connection.getNick())){									
 									playerEnough(nick);
 								}else{
 									fold();
@@ -207,7 +205,7 @@ public class Table extends StackPane{
 							public void run() {
 								String[] ar = mess.split("~");
 								String nick = ar[2];
-								if(!nick.equals(connection.nick)){
+								if(!nick.equals(connection.getNick())){
 									playerFolds(nick);									
 								}
 							}
@@ -230,7 +228,7 @@ public class Table extends StackPane{
 								if(ar.length == 2){
 									lose();
 								}else if(ar.length == 3){
-									if(ar[2].equals(connection.nick)){
+									if(ar[2].equals(connection.getNick())){
 										win();
 									}else{
 									//	playerWon(ar[2]);
@@ -239,14 +237,13 @@ public class Table extends StackPane{
 								}else if(ar.length > 3){
 									lose();
 									for (int i = 2; i < ar.length; i++) {
-										if(ar[i].equals(connection.nick)){
+										if(ar[i].equals(connection.getNick())){
 											draw();
 										}else{
 										//	playerDraw(ar[i]);									
 										}
 									}
 								}
-								
 							}
 						}
 				);
@@ -364,7 +361,7 @@ public class Table extends StackPane{
 			@Override
 			public void handle(MouseEvent event) {
 				as.setLoginStage();
-				as.setLoginValues(connection.server, connection.port, connection.nick, connection.password);
+				as.setLoginValues(connection.getServer(), connection.getPort(), connection.getNick(), connection.getPassword());
 			}
 		});
 	}

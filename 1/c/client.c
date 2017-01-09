@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #include "server.h"
 
@@ -14,7 +15,12 @@
 
 void createClient(struct server* Server, int socket){
     struct client* Client;
-    Client = malloc(sizeof(struct client));
+    if((Client = malloc(sizeof(struct client))) == NULL){
+        printf("Oh dear, something went wrong! Unable to allocate memory for new Client\n");
+        close(socket);
+        return;
+    }
+
     Client->currentlyLogged = NULL;
     Client->Server = Server;
     Client->socket = socket;
@@ -22,13 +28,29 @@ void createClient(struct server* Server, int socket){
     Client->recievedMessages = 0;
     Client->closable = 2;
     if(pthread_create(&Client->tid, NULL, runClient, Client)){
+        printf("Oh dear, something went wrong! Unable to create thread for new Client\n");
+        close(socket);
+        return;
+    }
+    if(pthread_detach(Client->tid)){
+        printf("Oh dear, something went wrong! Unable to detach thread for new Client\n");
         pthread_cancel(Client->tid);
+        close(socket);
+        return;
     }
-    pthread_detach(Client->tid);
     if(pthread_create(&Client->checkerTid, NULL, runChecker, Client)) {
-        pthread_cancel(Client->checkerTid);
+        printf("Oh dear, something went wrong! Unable to create thread for Control\n");
+        pthread_cancel(Client->tid);
+        close(socket);
+        return;
     }
-    pthread_detach(Client->checkerTid);
+    if(pthread_detach(Client->checkerTid)){
+        printf("Oh dear, something went wrong! Unable to detach thread for new Control\n");
+        pthread_cancel(Client->tid);
+        pthread_cancel(Client->checkerTid);
+        close(socket);
+        return;
+    }
 
 }
 
@@ -37,25 +59,35 @@ void* runClient(void * voidClient){
     struct client* Client = (struct client*)voidClient;
     char buf[BUFFSIZE];
     int c_sockfd = Client->socket;
+    ssize_t result;
     Client->running = 1;
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
     printf("Server prijal klienta %p\n", (void *)&Client->tid);
     fprintf(Client->Server->log,"Server prijal klienta %p\n", (void *)&Client->tid);
     while(Client->running) {
         memset(&buf, 0, sizeof(buf));
-        if (read(c_sockfd, buf, BUFFSIZE) == -1) {
-        /*    perror("Chyba pri cteni\n"); */
+        result = read(c_sockfd, buf, BUFFSIZE);
+        printf("%p %d bytes was read from socket\n",(void *)&Client->tid, (int)result);
+        if (result <= 0) {
+            printf("Can´t read from socket. Killing socket`s listener.\n");
             break;
-        }else {
+        }else if(result > 0){
             Client->shouldDie = 0;
-            p = strtok(buf, "\r\n");
-            while (p != NULL && Client->running){
+            p = multi_tok(buf, "\r\n");
+
+            while (p != NULL && p[0] != '\0' && Client->running){
+                if(p[strlen(p) - 1] == '\n') {
+                    p[strlen(p) - 1] = '\0';
+                }
                 printf("%p Server gets: %s\n", (void *) &Client->tid, p);
                 fprintf(Client->Server->log,"%p Server gets: %s\n", (void *) &Client->tid, p);
                 if(recieve(Client, p)){
                     Client->running = 0;
                     break;
                 }
-                p = strtok(NULL, "\r\n");
+                
+                p = multi_tok(NULL, "\r\n");
+
             }
 
 
@@ -63,12 +95,11 @@ void* runClient(void * voidClient){
         }
     }
     if(Client->currentlyLogged != NULL) {
-        logout(Client);
+        sendMessage(Client, logout(Client));
         Client->currentlyLogged->Client = NULL;
     }
     printf("Klient %p ukoncil prubeh\n", (void *)&Client->tid);
     fprintf(Client->Server->log,"Klient %p ukoncil prubeh\n", (void *)&Client->tid);
-    shutdown(Client->socket, SHUT_WR);
     close(Client->socket);
     pthread_cancel(Client->checkerTid);
     free(Client);
@@ -78,8 +109,8 @@ void* runClient(void * voidClient){
 void* runChecker(void * voidClient){
     struct client* Client = (struct client*)voidClient;
     int i;
-
     Client->shouldDie = 1;
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
     for (i = 0; i < 5; ++i) {
         sleep(3);
             if(Client->running) {
@@ -91,11 +122,9 @@ void* runChecker(void * voidClient){
                 break;
             }
     }
-    logout(Client);
-
+    sendMessage(Client, logout(Client));
     printf("Checker kills %p \n", (void *) &Client->tid);
     fprintf(Client->Server->log, "Checker kills %p \n", (void *) &Client->tid);
-    shutdown(Client->socket, SHUT_WR);
     close(Client->socket);
     pthread_cancel(Client->tid);
     free(Client);
@@ -152,18 +181,6 @@ int recieve(struct client* Client, char* mess){
             return 1;
         } else if (strcmp(type, "players") == 0) {
             getPlayers(Client);
-            for (i = 0; i < Client->currentlyLogged->game->playingPos; i++) {
-                notifyGameAboutDraw(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
-            }
-            for (i = 0; i < Client->currentlyLogged->game->playingPos; i++) {
-                if (!Client->currentlyLogged->game->playing[i]->active) {
-                    notifyGameAboutLeave(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
-                }
-                if (Client->currentlyLogged->game->playing[i]->hasEnough) {
-                    notifyGameAboutEnough(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
-                }
-            }
-            sendMessage(Client, "3~players~success\n");
         } else if (strcmp(type, "draw") == 0) {
             drawCard(Client);
         } else if (strcmp(type, "enough") == 0) {
@@ -268,7 +285,6 @@ char* login(struct client* Client, char* name, char* password){
         }
     }else{
         printf("Client was null.\n");
-        fprintf(Client->Server->log, "Client was null.\n");
     }
     strcat(mess, "\n");
     return mess;
@@ -359,7 +375,7 @@ char* logout(struct client* Client){
             Client->currentlyLogged->leaving = 1;
             Client->currentlyLogged->logged = 0;
             Client->currentlyLogged->Client = NULL;
-            if(isGameFirstTurn(Client->currentlyLogged->game)){
+            if(isGameFirstTurn(Client->currentlyLogged->game) || Client->currentlyLogged->game->playingPos == 1){
                 resetGame(Client->currentlyLogged->game);
             }
             strcpy(mess, "3~logout~success\n");
@@ -380,7 +396,7 @@ char* returnBack(struct client* Client){
             Client->currentlyLogged->active = 0;
             notifyGameAboutLeave(Client->currentlyLogged->game, Client->currentlyLogged);
             Client->currentlyLogged->leaving = 1;
-            if(isGameFirstTurn(Client->currentlyLogged->game)){
+            if(isGameFirstTurn(Client->currentlyLogged->game) || Client->currentlyLogged->game->playingPos == 1){
                 resetGame(Client->currentlyLogged->game);
             }
             strcpy(mess, "3~return~success\n");
@@ -409,6 +425,20 @@ void getPlayers(struct client* Client){
                         sendMessage(Client, mess);
                     }
                 }
+
+
+                        for (i = 0; i < Client->currentlyLogged->game->playingPos; i++) {
+                            notifyGameAboutDraw(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
+                        }
+                        for (i = 0; i < Client->currentlyLogged->game->playingPos; i++) {
+                            if (!Client->currentlyLogged->game->playing[i]->active) {
+                                notifyGameAboutLeave(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
+                            }
+                            if (Client->currentlyLogged->game->playing[i]->hasEnough) {
+                                notifyGameAboutEnough(Client->currentlyLogged->game, Client->currentlyLogged->game->playing[i]);
+                            }
+                        }
+
             }else {
                 sendMessage(Client, "2~invalidState\n");
             }

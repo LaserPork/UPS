@@ -1,7 +1,7 @@
 #include "server.h"
 #include <stdlib.h>
-#include <stdio.h>
-
+#include <string.h>
+#include <errno.h>
 
 
 
@@ -9,17 +9,30 @@
 struct server* createServer(int port, int numberOfTables){
     int i;
     struct server* Server;
-    Server = malloc(sizeof(struct server));
+    if((Server = malloc(sizeof(struct server))) == NULL){
+        printf("Oh dear, something went wrong! Unable to allocate memory for Server\n");
+        return NULL;
+    }
     Server->numberOfTables = numberOfTables;
     Server->users = createUserArray();
     Server->threads = createClientArray();
-    Server->tables = malloc(sizeof(struct game*) * numberOfTables);
+
+    if((Server->tables = malloc(sizeof(struct game*) * numberOfTables)) == NULL){
+        printf("Oh dear, something went wrong! Unable to allocate memory for Games\n");
+        free(Server);
+        return NULL;
+    }
     for (i = 0; i < numberOfTables; i++) {
         Server->tables[i] = createGame(i);
 
     }
     Server->port = port;
-    Server->log = fopen("ServerLog.txt", "w");
+    if( (Server->log = fopen("ServerLog.txt", "w")) == NULL){
+        printf("Oh dear, something went wrong with opening log file! %s\n", strerror(errno));
+        free(Server->tables);
+        free(Server);
+        return NULL;
+    }
     return Server;
 }
 
@@ -30,7 +43,7 @@ int runServer(struct server *Server){
     int optval;
 
     if ((sockfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
-        perror("Socket nelze otevrit");
+        printf("Oh dear, something went wrong with opening socket! %s\n", strerror(errno));
         return 1;
     }
 

@@ -17,6 +17,7 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -75,7 +76,7 @@ public class AppStage{
 									@Override
 									public void run() {
 										String name = ar[3];
-										connection.nick = name;
+										connection.setNick(name);
 										info.setTextFill(Color.GREEN);
 										info.setText("Succesfully logged in");
 										setTableStage();
@@ -91,7 +92,7 @@ public class AppStage{
 									public void run() {
 										setTableStage();
 										String name = ar[3];
-										connection.nick = name;
+										connection.setNick(name);
 										info.setTextFill(Paint.valueOf("blue"));
 										info.setText("New account registered");
 									}
@@ -136,7 +137,7 @@ public class AppStage{
 							public void run() {
 								stage.hide();
 								setLoginStage();
-								setLoginValues(connection.server, connection.port, connection.nick, connection.password);
+								setLoginValues(connection.getServer(), connection.getPort(), connection.getNick(), connection.getPassword());
 								stage.show();
 							}
 						}
@@ -328,7 +329,18 @@ public class AppStage{
 					int port = ((Spinner<Integer>)((HBox)vb.getChildren().get(0)).getChildren().get(2)).getValueFactory().getValue();
 					String nick = ((TextField)((HBox)vb.getChildren().get(1)).getChildren().get(1)).getText();
 					String pass = ((PasswordField)((HBox)vb.getChildren().get(2)).getChildren().get(1)).getText();
-					connection = new Connection(as, callbacks, server, port, nick, pass);
+					if(server.isEmpty()){
+						setInfo("Fill in server field", Color.RED);
+					}else if(port > 65535 || port < 1){
+						setInfo("Port must be between 1 and 65535", Color.RED);
+					}else if(nick.isEmpty()){
+						setInfo("Fill in name field", Color.RED);
+					}else if(pass.isEmpty()){
+						setInfo("Fill in password field", Color.RED);
+					}else{
+						connection = new Connection(as, callbacks, server, port, nick, pass);
+						
+					}
 				
 			}
 		});
@@ -392,6 +404,17 @@ public class AppStage{
 		players.setPrefWidth(100);
 		tables.getColumns().addAll(tableName, players);
 		tables.setPrefSize(300, 400);
+		
+		tables.setRowFactory( tv -> {
+		    TableRow<TableViewCell> row = new TableRow<>();
+		    row.setOnMouseClicked(event -> {
+		        if (event.getClickCount() == 2 && (! row.isEmpty()) ) {
+		        	TableViewCell rowData = row.getItem();
+		            connection.join(rowData.getId());
+		        }
+		    });
+		    return row ;
+		});
 		
 		connection.askTables();
 		
@@ -497,17 +520,18 @@ public class AppStage{
 								!info.getText().equals("Account already exists, but wrong password")){
 								info.setText("Disconnected from server");
 								info.setTextFill(Color.RED);
-								stage.getScene().getRoot().setOnMouseClicked(new EventHandler<MouseEvent>() {
+								stage.getScene().addEventFilter(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
 									@Override
 									public void handle(MouseEvent event) {
 										if(!(stage.getScene().getRoot() instanceof VBox)){
 											stage.hide();
 											setLoginStage();
-											setLoginValues(connection.server, connection.port, connection.nick, connection.password);
+											setLoginValues(connection.getServer(), connection.getPort(), connection.getNick(), connection.getPassword());
 											stage.show();
 										}
 									}
 								});
+								
 							}
 						}
 						
@@ -527,9 +551,10 @@ public class AppStage{
 						if(stage.getScene().getRoot() instanceof Table){
 							((Table)stage.getScene().getRoot()).freeze();
 						}else{
+							/*
 							info.setText("Waiting for response from server");
 							info.setTextFill(Color.RED);
-							/*
+							
 								stage.getScene().getRoot().setOnMouseClicked(new EventHandler<MouseEvent>() {
 									@Override
 									public void handle(MouseEvent event) {
@@ -562,9 +587,11 @@ public class AppStage{
 								if(stage.getScene().getRoot() instanceof Table){
 									((Table)stage.getScene().getRoot()).unfreeze();
 								}else{
+									/*
 									info.setText("Connection established");
 									info.setTextFill(Color.GREEN);
-									stage.getScene().getRoot().setOnMouseDragged(null);
+									stage.getScene().getRoot().setOnMouseClicked(null);
+									*/
 								}
 								frozen = false;
 							}

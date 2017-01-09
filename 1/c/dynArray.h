@@ -27,4 +27,6 @@ void addClient(struct dynClientArray *array, struct client *client);
 
 void freeArray(char** array, int size);
 
+char *multi_tok(char *input, char *delimiter);
+
 #endif

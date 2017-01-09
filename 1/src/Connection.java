@@ -1,7 +1,6 @@
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Map;
 
 import javafx.scene.paint.Color;
@@ -9,16 +8,16 @@ import javafx.util.Callback;
 
 class Connection extends Thread{
 
-	PrintWriter out;
-	BufferedReader in;
-	Socket socket;
-	Map<String, Callback<String, Object>> callbacks;
-	String server;
-	int port;
-	String nick;
-	String password;
-	AppStage as;
-	ArrayList<Checker> checkers = new ArrayList<Checker>();
+	private PrintWriter out;
+	private BufferedReader in;
+	private Socket socket;
+	private Map<String, Callback<String, Object>> callbacks;
+	private String server;
+	private int port;
+	private String nick;
+	private String password;
+	private AppStage as;
+	private ArrayList<Checker> checkers = new ArrayList<Checker>();
 	private TablePickerRefresher tpRefresher;
 	
 	public Connection(AppStage as, Map<String, Callback<String, Object>> callbacks, String server, int port, String nick, String password) {
@@ -64,10 +63,20 @@ class Connection extends Thread{
 			return;
 		}
 		String type = ar[1];
-		removeChecker(type);
+		if(type.equals("invalidState")){
+			removeAllCheckers();
+		}else{
+			removeChecker(type);			
+		}
 		as.unfreeze();
 		if(callbacks.get(type)!= null){
 			callbacks.get(type).call(mess);
+		}
+		if(type.equals("end")){
+			try {
+				Thread.sleep(3000);
+			} catch (InterruptedException e) {
+			}
 		}
 	}
 
@@ -94,11 +103,12 @@ class Connection extends Thread{
 		if(socket != null){
 			try {
 				as.disconnect();
+				tpRefresher.stopRefreshing();
+				tpRefresher.interrupt();
+				removeAllCheckers();
 				in.close();
 				out.close();
 				socket.close();
-				tpRefresher.stopRefreshing();
-				removeAllCheckers();
 				out = null;
 				in = null;
 				socket = null;
@@ -115,13 +125,15 @@ class Connection extends Thread{
 	}
 	
 	public void removeChecker(String typ){
+		ArrayList<Checker> newCheckers = new ArrayList<Checker>();
 		for (int i = 0; i < checkers.size(); ++i) {
 			if(checkers.get(i).getResponse().equals(typ)){
 				checkers.get(i).interrupt();
-				checkers.remove(i);
-				i--;
+			}else{
+				newCheckers.add(checkers.get(i));
 			}
 		}
+		checkers = newCheckers;
 	}
 	
 	public void login(String nick, String password){
@@ -212,4 +224,94 @@ class Connection extends Thread{
 			
 		}
 	}
+
+	public PrintWriter getOut() {
+		return out;
+	}
+
+	public void setOut(PrintWriter out) {
+		this.out = out;
+	}
+
+	public BufferedReader getIn() {
+		return in;
+	}
+
+	public void setIn(BufferedReader in) {
+		this.in = in;
+	}
+
+	public Socket getSocket() {
+		return socket;
+	}
+
+	public void setSocket(Socket socket) {
+		this.socket = socket;
+	}
+
+	public Map<String, Callback<String, Object>> getCallbacks() {
+		return callbacks;
+	}
+
+	public void setCallbacks(Map<String, Callback<String, Object>> callbacks) {
+		this.callbacks = callbacks;
+	}
+
+	public String getServer() {
+		return server;
+	}
+
+	public void setServer(String server) {
+		this.server = server;
+	}
+
+	public int getPort() {
+		return port;
+	}
+
+	public void setPort(int port) {
+		this.port = port;
+	}
+
+	public String getNick() {
+		return nick;
+	}
+
+	public void setNick(String nick) {
+		this.nick = nick;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public AppStage getAs() {
+		return as;
+	}
+
+	public void setAs(AppStage as) {
+		this.as = as;
+	}
+
+	public ArrayList<Checker> getCheckers() {
+		return checkers;
+	}
+
+	public void setCheckers(ArrayList<Checker> checkers) {
+		this.checkers = checkers;
+	}
+
+	public TablePickerRefresher getTpRefresher() {
+		return tpRefresher;
+	}
+
+	public void setTpRefresher(TablePickerRefresher tpRefresher) {
+		this.tpRefresher = tpRefresher;
+	}
+	
+	
 }

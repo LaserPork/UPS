@@ -10,7 +10,7 @@ public class Checker extends Thread{
 	public Checker(String sent, String response, Connection connection){
 		this.sent = sent;
 		this.response = response;
-		this.out = connection.out;
+		this.out = connection.getOut();
 		this.connection = connection;
 		setDaemon(true);
 		start();
@@ -21,15 +21,15 @@ public class Checker extends Thread{
 	}
 	
 	public void run(){
-		connection.as.freeze();
-		for (int i = 0; i < 8; i++) {
+		connection.getAs().freeze();
+		for (int i = 0; i < 2; i++) {
 			try {
-				Thread.sleep(2000);
+				Thread.sleep(8000);
 				System.out.println("Checker sends:	"+sent);
 				out.println(sent);
 			} catch (Exception e) {
 				//Message came
-				connection.as.unfreeze();
+				connection.getAs().unfreeze();
 				return;
 			}
 			

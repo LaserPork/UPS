@@ -15,11 +15,12 @@ public class TablePickerRefresher extends Thread{
 		while(running){
 			for (int i = 0; i < tables.getItems().size(); i++) {
 				try {
-					if(connection.out != null){
+					if(connection.getOut() != null){
 						connection.askTable(i);
 					}
 					sleep(1000);
 				} catch (Exception e) {
+					running = false;
 					return;
 				}
 				if(!running){
