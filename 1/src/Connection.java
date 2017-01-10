@@ -34,6 +34,7 @@ class Connection extends Thread{
 	public void run(){
 		if(!connect(server, port)){
 			System.out.println("Nelze se pripojit");
+			as.unfreeze();
 			as.setInfo("Unable to connect", Color.RED);
 			return;
 		}
@@ -84,6 +85,7 @@ class Connection extends Thread{
 	public boolean connect(String host, int port){
 		try {
 			System.out.println("Klient se chce pripojit");
+			as.freeze();
 			socket = new Socket(host, port);
 			System.out.println("klient	"+socket.getPort()+"	"+
 					socket.getLocalPort()+"	"+

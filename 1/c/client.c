@@ -85,7 +85,7 @@ void* runClient(void * voidClient){
                     Client->running = 0;
                     break;
                 }
-                
+
                 p = multi_tok(NULL, "\r\n");
 
             }

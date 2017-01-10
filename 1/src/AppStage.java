@@ -14,6 +14,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.SpinnerValueFactory;
 import javafx.scene.control.TableColumn;
@@ -42,6 +43,7 @@ public class AppStage{
 	private Label info;
 	private TableView<TableViewCell> tables = new TableView<TableViewCell>();
 	private boolean frozen = false;
+	private ProgressIndicator loading;
 	
 	public AppStage(Stage stage){
 		this.stage = stage;
@@ -307,10 +309,12 @@ public class AppStage{
 		Pane vb = initGrid();
 		
 		info = new Label();
+		loading = new ProgressIndicator();
+		loading.setProgress(1);
 		Button btloggin = new Button("Login");
 		Button btexit = new Button("Exit");
 		HBox btns = new HBox(btloggin,btexit);
-		VBox control = new VBox(vb,info, btns);
+		VBox control = new VBox(vb,loading,info, btns);
 		info.setAlignment(Pos.BOTTOM_CENTER);
 		info.setWrapText(true);
 		info.setPrefSize(180, 50);
@@ -425,7 +429,7 @@ public class AppStage{
 		HBox hb = new HBox();
 		Button join = new Button("Join");
 		Button logout = new Button("Log out");
-		VBox btns = new VBox(info, hb);
+		VBox btns = new VBox(info,loading, hb);
 		hb.getChildren().addAll(join,logout);
 		hb.setAlignment(Pos.BOTTOM_CENTER);
 		hb.setPadding(new Insets(10));
@@ -551,31 +555,16 @@ public class AppStage{
 						if(stage.getScene().getRoot() instanceof Table){
 							((Table)stage.getScene().getRoot()).freeze();
 						}else{
-							/*
-							info.setText("Waiting for response from server");
-							info.setTextFill(Color.RED);
 							
-								stage.getScene().getRoot().setOnMouseClicked(new EventHandler<MouseEvent>() {
-									@Override
-									public void handle(MouseEvent event) {
-										if(!(stage.getScene().getRoot() instanceof VBox)){
-											stage.hide();
-											setLoginStage();
-											setLoginValues(connection.server, connection.port, connection.nick, connection.password);
-											stage.show();
-										}
-									}
-								});
-								*/
-							}
-							
-						
+							loading.setProgress(-1);
+						}
 						frozen = true;
 					}
 				}
-		);
 		
+		);
 	}
+				
 	
 	public void unfreeze(){
 		
@@ -587,11 +576,7 @@ public class AppStage{
 								if(stage.getScene().getRoot() instanceof Table){
 									((Table)stage.getScene().getRoot()).unfreeze();
 								}else{
-									/*
-									info.setText("Connection established");
-									info.setTextFill(Color.GREEN);
-									stage.getScene().getRoot().setOnMouseClicked(null);
-									*/
+									loading.setProgress(1);
 								}
 								frozen = false;
 							}
