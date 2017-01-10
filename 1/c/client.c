@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include "server.h"
 
@@ -140,7 +141,8 @@ int recieve(struct client* Client, char* mess){
     char buf_out[BUFFSIZE];
     int found = 1;
     Client->recievedMessages++;
-    memset(buf_out, 0, sizeof(buf_out));
+    memset(buf_out, '\0', sizeof(buf_out));
+    assert(buf_out[0] == '\0');
     for (i = 0; i < 10; ++i) {
         array[i] = malloc(sizeof(char) * 20);
     }
@@ -333,32 +335,35 @@ char* join(struct client* Client, int id){
     static char mess[50];
     struct game* Game;
     if(Client != NULL) {
-        if(Client->currentlyLogged != NULL) {
-            Game = Client->Server->tables[id];
-            sprintf(idStr, "%d", id);
-            if (Game->playingPos == 5) {
+        if(Client->Server->numberOfTables > id) {
+            if (Client->currentlyLogged != NULL) {
+                Game = Client->Server->tables[id];
+                sprintf(idStr, "%d", id);
+                if (Game->playingPos == 5) {
+                    strcpy(mess, "4~join~");
+                    strcat(mess, idStr);
+                    strcat(mess, "~full\n");
+                    return mess;
+                }
+                if (Client->currentlyLogged->game != NULL && id != Client->currentlyLogged->game->id) {
+                    sprintf(gameStr, "%d", Client->currentlyLogged->game->id);
+                    strcpy(mess, "5~join~");
+                    strcat(mess, idStr);
+                    strcat(mess, "~alreadyplaying~");
+                    strcat(mess, gameStr);
+                    strcat(mess, "\n");
+                    return mess;
+                }
+                Client->currentlyLogged->game = Game;
+                joinGameUser(Game, Client->currentlyLogged);
+                notifyGameAboutJoin(Game, Client->currentlyLogged);
                 strcpy(mess, "4~join~");
                 strcat(mess, idStr);
-                strcat(mess, "~full\n");
-                return mess;
+                strcat(mess, "~success\n");
+            } else {
+                sendMessage(Client, "2~invalidState\n");
             }
-            if (Client->currentlyLogged->game != NULL && id != Client->currentlyLogged->game->id) {
-                sprintf(gameStr, "%d", Client->currentlyLogged->game->id);
-                strcpy(mess, "5~join~");
-                strcat(mess, idStr);
-                strcat(mess, "~alreadyplaying~");
-                strcat(mess, gameStr);
-                strcat(mess, "\n");
-                return mess;
-            }
-            Client->currentlyLogged->game = Game;
-            joinGameUser(Game, Client->currentlyLogged);
-            notifyGameAboutJoin(Game, Client->currentlyLogged);
-            strcpy(mess, "4~join~");
-            strcat(mess, idStr);
-            strcat(mess, "~success\n");
-        }else{
-            sendMessage(Client, "2~invalidState\n");
+            sendMessage(Client, "2~tableDoesntExist\n");
         }
     }else{
         printf("Client was null.\n");
